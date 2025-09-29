@@ -1,0 +1,57 @@
+/* src/styles/index.css */
+@import 'tailwindcss';
+@font-face {
+  font-family: 'Marcellus'; /* Le damos un nombre único para usarla */
+  src: url('/src/assets/fonts/Marcellus.ttf') format('truetype');
+  /* Esta ruta es relativa desde index.css (en src/styles) 
+     hasta Amiri.ttf (en src/assets/fonts) */
+}
+
+/* Mantén tu importación de Tailwind y cualquier otra configuración base que tenías */
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif; /* O tu fuente base para el cuerpo */
+    @apply antialiased;
+    /* ...otros estilos base del body... */
+  }
+}
+
+/* Define la clase que usará tu fuente Amiri para el título del Hero */
+.font-hero-title {
+  font-family:
+    'Marcellus', serif; /* Usamos el nombre que definimos en @font-face */
+  /* 'serif' es un tipo de fuente de respaldo */
+}
+
+.font-nav-link {
+  font-family:
+    'Marcellus', serif; /* Usa 'Merriweather' para los enlaces del Navbar */
+}
+
+/* src/styles/index.css (al final o donde definas animaciones) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scaleUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+} /* 'forwards' mantiene el estado final */
+.animate-scaleUp {
+  animation: scaleUp 0.25s ease-out forwards;
+}

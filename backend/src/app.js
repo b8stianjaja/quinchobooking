@@ -1,3 +1,4 @@
+// quincho-booking-backend/src/app.js
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
@@ -43,12 +44,12 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 
-app.use(limiter);
-
+// --- FIX: Define the limiter before using it ---
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100
 });
+app.use(limiter);
 
 let cookieDomain;
 if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {

@@ -4,6 +4,7 @@ const cors = require('cors');
 const session = require('express-session');
 const morgan = require('morgan');
 const helmet = require('helmet');
+// --- FIX: This line has been corrected ---
 const rateLimit = require('express-rate-limit');
 const pgSession = require('connect-pg-simple')(session);
 
@@ -16,30 +17,29 @@ const app = express();
 // This is CRITICAL for Render. It tells Express to trust the proxy.
 app.set('trust proxy', 1);
 
-// --- START OF THE FIX ---
-// This new logic robustly handles both www and naked domains.
 const allowedOrigins = ['http://localhost:5173'];
 const frontendUrl = process.env.FRONTEND_URL;
 
 if (frontendUrl) {
-    if (frontendUrl.startsWith('https://www.')) {
-        // If the URL has 'www', add both versions to the allowed list.
-        allowedOrigins.push(frontendUrl); // e.g., https://www.quinchoelruco.com
-        allowedOrigins.push(frontendUrl.replace('www.', '')); // e.g., https://quinchoelruco.com
-    } else {
-        // If the URL does not have 'www', add both versions.
-        allowedOrigins.push(frontendUrl); // e.g., https://quinchoelruco.com
-        allowedOrigins.push(frontendUrl.replace('https://', 'https://www.')); // e.g., https://www.quinchoelruco.com
+    try {
+        const url = new URL(frontendUrl);
+        const hostname = url.hostname; // e.g., "www.quinchoelruco.com"
+        const baseHostname = hostname.replace(/^www\./, ''); // e.g., "quinchoelruco.com"
+
+        // Allow the exact URL, the URL without 'www', and the URL with 'www'
+        allowedOrigins.push(`https://${baseHostname}`);
+        allowedOrigins.push(`https://www.${baseHostname}`);
+    } catch (e) {
+        console.error("Invalid FRONTEND_URL provided:", e);
     }
 }
-// --- END OF THE FIX ---
 
 const corsOptions = {
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
+            console.error(`CORS error: Origin ${origin} not allowed.`);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -58,21 +58,20 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// --- START: FIX FOR COOKIE DOMAIN ---
-// Logic to determine the root domain for the cookie
 let cookieDomain;
 if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
   try {
     const url = new URL(process.env.FRONTEND_URL);
-    // This will get 'quinchoelruco.com' from 'www.quinchoelruco.com'
-    cookieDomain = url.hostname.replace(/^www\./, '');
+    // This creates a domain like '.quinchoelruco.com', which is valid for 'www.quinchoelruco.com' and the root domain.
+    cookieDomain = '.' + url.hostname.replace(/^www\./, '');
   } catch (e) {
     console.error('Invalid FRONTEND_URL for cookie domain:', e);
   }
 }
-// --- END: FIX FOR COOKIE DOMAIN ---
 
 app.use(session({
+    // Use a unique name for the session cookie
+    name: 'quincho-booking.sid',
     store: new pgSession({
         pool: pool,
         tableName: 'sessions'
@@ -83,13 +82,13 @@ app.use(session({
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        proxy: true,
-        // This makes the cookie available to the root domain and all its subdomains
+        // Explicitly set the domain for the cookie.
         domain: cookieDomain
     }
 }));
+
 
 app.use('/api', bookingRoutes);
 

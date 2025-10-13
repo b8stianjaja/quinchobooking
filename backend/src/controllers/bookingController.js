@@ -4,10 +4,9 @@ const bookingModel = require('../models/bookingModel');
 const adminModel = require('../models/adminModel');
 const availabilityService = require('../services/availabilityService');
 
-// Implemented to use the availability service
 const getAvailability = async (req, res, next) => {
     try {
-        const { year, month } = req.query; // Expects year and month as query params
+        const { year, month } = req.query;
         if (!year || !month) {
             return res.status(400).json({ message: 'Year and month query parameters are required.' });
         }
@@ -27,14 +26,24 @@ const submitBookingRequest = async (req, res, next) => {
     }
 };
 
-
+// --- START: THE DEFINITIVE FIX ---
 const adminLoginController = async (req, res, next) => {
     try {
         const { username, password } = req.body;
         const admin = await adminModel.verifyAdmin(username, password);
         if (admin) {
+            // Set the session data
             req.session.admin = { id: admin.id, username: admin.username };
-            res.json({ success: true, message: 'Admin login successful.', user: admin });
+
+            // Explicitly save the session to the database and wait for it to complete
+            req.session.save((err) => {
+                if (err) {
+                    // If there's an error saving the session, pass it to the error handler
+                    return next(err);
+                }
+                // Once the session is saved, send the success response
+                res.json({ success: true, message: 'Admin login successful.', user: admin });
+            });
         } else {
             res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
@@ -42,13 +51,16 @@ const adminLoginController = async (req, res, next) => {
         next(error);
     }
 };
+// --- END: THE DEFINITIVE FIX ---
 
-const adminLogoutController = (req, res) => {
+const adminLogoutController = (req, res, next) => {
     req.session.destroy(err => {
         if (err) {
-            return res.status(500).json({ success: false, message: 'Could not log out, please try again.' });
+            // If there's an error, pass it to the error handler instead of sending a response here
+            return next(new Error('Could not log out, please try again.'));
         }
-        res.clearCookie('connect.sid');
+        // Ensure the cookie is cleared on the client side
+        res.clearCookie('quincho-booking.sid');
         res.json({ success: true, message: 'Logout successful.' });
     });
 };

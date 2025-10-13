@@ -13,17 +13,30 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// This is CRITICAL for Render. It tells Express to trust the proxy that Render
-// places in front of your service. Without this, secure cookies will fail.
+// This is CRITICAL for Render. It tells Express to trust the proxy.
 app.set('trust proxy', 1);
 
+// --- START OF THE FIX ---
+// This new logic robustly handles both www and naked domains.
 const allowedOrigins = ['http://localhost:5173'];
-if (process.env.FRONTEND_URL) {
-    allowedOrigins.push(process.env.FRONTEND_URL);
+const frontendUrl = process.env.FRONTEND_URL;
+
+if (frontendUrl) {
+    if (frontendUrl.startsWith('https://www.')) {
+        // If the URL has 'www', add both versions to the allowed list.
+        allowedOrigins.push(frontendUrl); // e.g., https://www.quinchoelruco.com
+        allowedOrigins.push(frontendUrl.replace('www.', '')); // e.g., https://quinchoelruco.com
+    } else {
+        // If the URL does not have 'www', add both versions.
+        allowedOrigins.push(frontendUrl); // e.g., https://quinchoelruco.com
+        allowedOrigins.push(frontendUrl.replace('https://', 'https://www.')); // e.g., https://www.quinchoelruco.com
+    }
 }
+// --- END OF THE FIX ---
 
 const corsOptions = {
     origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -54,16 +67,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        // In production, 'secure' must be true. The 'trust proxy' setting
-        // allows this to work correctly even though the final connection
-        // inside Render's network is not HTTPS.
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        // 'none' is required for cross-site cookies. 'secure' must be true for this to work.
+        maxAge: 24 * 60 * 60 * 1000,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        // We add 'proxy: true' to ensure the 'secure' setting is respected
-        // behind Render's proxy. This is the main fix.
         proxy: true
     }
 }));

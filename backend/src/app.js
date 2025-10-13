@@ -7,11 +7,15 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const pgSession = require('connect-pg-simple')(session);
 
-const { pool } = require('./config/db'); // db module
+const { pool } = require('./config/db');
 const bookingRoutes = require('./routes/bookingRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
+
+// This is CRITICAL for Render. It tells Express to trust the proxy that Render
+// places in front of your service. Without this, secure cookies will fail.
+app.set('trust proxy', 1);
 
 const allowedOrigins = ['http://localhost:5173'];
 if (process.env.FRONTEND_URL) {
@@ -35,9 +39,6 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 
-// This line is important for Render to trust the proxy and secure cookies.
-app.set('trust proxy', 1);
-
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100
@@ -53,12 +54,17 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Will be true on Render
+        // In production, 'secure' must be true. The 'trust proxy' setting
+        // allows this to work correctly even though the final connection
+        // inside Render's network is not HTTPS.
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        // ** THE FIX IS HERE **
-        // This setting allows the cookie to be sent from your frontend's domain.
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        // 'none' is required for cross-site cookies. 'secure' must be true for this to work.
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        // We add 'proxy: true' to ensure the 'secure' setting is respected
+        // behind Render's proxy. This is the main fix.
+        proxy: true
     }
 }));
 

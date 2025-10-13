@@ -58,6 +58,20 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// --- START: FIX FOR COOKIE DOMAIN ---
+// Logic to determine the root domain for the cookie
+let cookieDomain;
+if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
+  try {
+    const url = new URL(process.env.FRONTEND_URL);
+    // This will get 'quinchoelruco.com' from 'www.quinchoelruco.com'
+    cookieDomain = url.hostname.replace(/^www\./, '');
+  } catch (e) {
+    console.error('Invalid FRONTEND_URL for cookie domain:', e);
+  }
+}
+// --- END: FIX FOR COOKIE DOMAIN ---
+
 app.use(session({
     store: new pgSession({
         pool: pool,
@@ -71,7 +85,9 @@ app.use(session({
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        proxy: true
+        proxy: true,
+        // This makes the cookie available to the root domain and all its subdomains
+        domain: cookieDomain
     }
 }));
 

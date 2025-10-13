@@ -13,15 +13,12 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// Trust the proxy for Render's environment. This is essential for secure cookies.
 app.set('trust proxy', 1);
 
-// --- 1. Core Middleware (Security, Logging, Parsing) ---
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 
-// --- 2. CORS Configuration (Cross-Origin Resource Sharing) ---
 const allowedOrigins = ['http://localhost:5173'];
 const frontendUrl = process.env.FRONTEND_URL;
 
@@ -47,7 +44,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// --- 3. Rate Limiting ---
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -56,12 +52,10 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// --- 4. Session Configuration ---
 let cookieDomain;
 if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
   try {
     const url = new URL(process.env.FRONTEND_URL);
-    // Format as '.yourdomain.com' to be valid for both 'www' and the root domain.
     cookieDomain = '.' + url.hostname.replace(/^www\./, '');
   } catch (e) {
     console.error('Invalid FRONTEND_URL for cookie domain:', e);
@@ -69,7 +63,7 @@ if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
 }
 
 app.use(session({
-    name: 'quincho-booking.sid', // A unique name for your session cookie.
+    name: 'quincho-booking.sid',
     store: new pgSession({
         pool: pool,
         tableName: 'sessions'
@@ -80,13 +74,12 @@ app.use(session({
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        maxAge: 24 * 60 * 60 * 1000,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         domain: cookieDomain
     }
 }));
 
-// --- 5. Application Routes and Error Handling ---
 app.use('/api', bookingRoutes);
 app.use(errorHandler);
 

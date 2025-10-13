@@ -1,5 +1,4 @@
 // backend/src/controllers/bookingController.js
-
 const bookingModel = require('../models/bookingModel');
 const adminModel = require('../models/adminModel');
 const availabilityService = require('../services/availabilityService');
@@ -26,22 +25,19 @@ const submitBookingRequest = async (req, res, next) => {
     }
 };
 
-// --- START: THE DEFINITIVE FIX ---
 const adminLoginController = async (req, res, next) => {
     try {
         const { username, password } = req.body;
         const admin = await adminModel.verifyAdmin(username, password);
         if (admin) {
-            // Set the session data
             req.session.admin = { id: admin.id, username: admin.username };
 
-            // Explicitly save the session to the database and wait for it to complete
+            // FIX: Explicitly save the session to the database and wait for the
+            // callback to ensure it's written before we respond to the client.
             req.session.save((err) => {
                 if (err) {
-                    // If there's an error saving the session, pass it to the error handler
                     return next(err);
                 }
-                // Once the session is saved, send the success response
                 res.json({ success: true, message: 'Admin login successful.', user: admin });
             });
         } else {
@@ -51,17 +47,28 @@ const adminLoginController = async (req, res, next) => {
         next(error);
     }
 };
-// --- END: THE DEFINITIVE FIX ---
 
 const adminLogoutController = (req, res, next) => {
+    // FIX: Define cookie options to ensure the cookie is cleared correctly from the browser.
+    // It must match the options used to set it (domain and path).
+    const cookieOptions = {
+      path: '/',
+    };
+    if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
+        try {
+            const url = new URL(process.env.FRONTEND_URL);
+            cookieOptions.domain = '.' + url.hostname.replace(/^www\./, '');
+        } catch (e) {
+            console.error('Could not parse FRONTEND_URL for logout cookie domain', e);
+        }
+    }
+
     req.session.destroy(err => {
         if (err) {
-            // If there's an error, pass it to the error handler instead of sending a response here
             return next(new Error('Could not log out, please try again.'));
         }
-        // Ensure the cookie is cleared on the client side
-        res.clearCookie('quincho-booking.sid');
-        res.json({ success: true, message: 'Logout successful.' });
+        res.clearCookie('quincho-booking.sid', cookieOptions);
+        res.status(200).json({ success: true, message: 'Logout successful.' });
     });
 };
 

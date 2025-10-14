@@ -2,8 +2,8 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const morgan = require('morgan');
-const helmet = require('helmet');
+const morgan = require('morgan'); // Recomendado: Logger para debugging en producción.
+const helmet = require('helmet'); // Recomendado: Middleware de seguridad esencial.
 const rateLimit = require('express-rate-limit');
 const pgSession = require('connect-pg-simple')(session);
 
@@ -13,74 +13,78 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+// Middleware esencial para que Express confíe en los encabezados de proxy de Render.
 app.set('trust proxy', 1);
 
-app.use(helmet());
-app.use(morgan('dev'));
-app.use(express.json());
+// --- Middlewares de Configuración y Seguridad ---
+app.use(helmet()); // 1. Seguridad: protege contra vulnerabilidades web conocidas.
+app.use(express.json()); // 2. Parser: permite a tu app entender peticiones con JSON.
+app.use(morgan('dev')); // 3. Logger: Muestra las peticiones en la consola (muy útil en logs de Render).
 
-const allowedOrigins = ['http://localhost:5173'];
+// --- Configuración de CORS (Cross-Origin Resource Sharing) ---
+// Define qué dominios de frontend tienen permiso para comunicarse con este backend.
+const allowedOrigins = ['http://localhost:5173']; // Origen para desarrollo local
 const frontendUrl = process.env.FRONTEND_URL;
 
 if (frontendUrl) {
-    if (frontendUrl.startsWith('https://www.')) {
-        allowedOrigins.push(frontendUrl);
+    allowedOrigins.push(frontendUrl);
+    // Añade la versión con y sin 'www' por si acaso.
+    if (frontendUrl.includes('www.')) {
         allowedOrigins.push(frontendUrl.replace('www.', ''));
     } else {
-        allowedOrigins.push(frontendUrl);
         allowedOrigins.push(frontendUrl.replace('https://', 'https://www.'));
     }
 }
 
-const corsOptions = {
+app.use(cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(new Error('Origen no permitido por CORS'));
         }
     },
-    credentials: true
-};
-app.use(cors(corsOptions));
+    credentials: true // ¡Crítico para que las cookies de sesión funcionen!
+}));
 
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
+// --- Rate Limiter ---
+// Protege tus rutas contra un exceso de peticiones (ataques de fuerza bruta).
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // Limita cada IP a 100 peticiones por ventana de 15 min.
     standardHeaders: true,
     legacyHeaders: false,
+    message: 'Demasiadas peticiones desde esta IP, por favor intente de nuevo en 15 minutos.'
 });
-app.use(limiter);
+app.use('/api/', apiLimiter);
 
-let cookieDomain;
-if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
-  try {
-    const url = new URL(process.env.FRONTEND_URL);
-    cookieDomain = '.' + url.hostname.replace(/^www\./, '');
-  } catch (e) {
-    console.error('Invalid FRONTEND_URL for cookie domain:', e);
-  }
-}
 
+// --- Configuración de Sesiones ---
+// Se usa la base de datos para almacenar sesiones, lo que permite que el login persista
+// aunque Render reinicie el servidor.
 app.use(session({
     name: 'quincho-booking.sid',
     store: new pgSession({
         pool: pool,
         tableName: 'sessions'
     }),
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET, // ¡Debe ser una variable de entorno!
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: cookieDomain
+        secure: process.env.NODE_ENV === 'production', // En producción, solo enviar cookie sobre HTTPS.
+        httpOnly: true, // Previene que el JavaScript del cliente acceda a la cookie.
+        maxAge: 24 * 60 * 60 * 1000, // 1 día de duración.
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Requerido para cookies entre dominios.
     }
 }));
 
+
+// --- Rutas de la API ---
 app.use('/api', bookingRoutes);
+
+// --- Manejador de Errores ---
+// Este es el último middleware. Atrapa cualquier error que ocurra en las rutas.
 app.use(errorHandler);
 
 module.exports = app;

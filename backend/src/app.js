@@ -13,10 +13,8 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// Confiar en los encabezados de proxy de plataformas como Render. Es crucial.
 app.set('trust proxy', 1);
 
-// --- Middlewares de Configuración y Seguridad ---
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -26,7 +24,6 @@ app.use(
 app.use(express.json());
 app.use(morgan('dev'));
 
-// --- Configuración de CORS ---
 const allowedOrigins = ['http://localhost:5173'];
 const frontendUrl = process.env.FRONTEND_URL;
 const isProduction = process.env.NODE_ENV === 'production' || !!frontendUrl;
@@ -53,7 +50,6 @@ app.use(
   })
 );
 
-// --- Rate Limiter ---
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -64,7 +60,6 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// --- Middleware anti-cache para la API ---
 app.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.set('Pragma', 'no-cache');
@@ -88,18 +83,15 @@ app.use(
     cookie: {
       secure: isProduction,
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 1 día
+      maxAge: 24 * 60 * 60 * 1000,
       sameSite: isProduction ? 'none' : 'lax',
-      // La propiedad 'domain' se ha eliminado intencionadamente para cumplir
+      // La propiedad 'domain' ha sido eliminada intencionadamente para cumplir
       // con las políticas de seguridad de los navegadores sobre sufijos públicos.
     },
   })
 );
 
-// --- Rutas de la API ---
 app.use('/api', bookingRoutes);
-
-// --- Manejador de Errores ---
 app.use(errorHandler);
 
 module.exports = app;

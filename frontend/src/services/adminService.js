@@ -1,5 +1,7 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+// frontend/src/services/adminService.js
+
+// La URL base ahora apunta a la ruta relativa /api en el mismo dominio.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const API_URL = `${API_BASE_URL}/api`;
 
 // Use a credentials helper to handle cookies

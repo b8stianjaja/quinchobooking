@@ -1,8 +1,10 @@
+// frontend/src/services/bookingService.js
+
+// La URL base ahora apunta a la ruta relativa /api en el mismo dominio.
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || '';
 const API_URL = `${API_BASE_URL}/api`;
 
-// FIX: Implemented getBookedSlots to fetch data from the backend.
 export const getBookedSlots = async (year, month) => {
   try {
     const response = await fetch(
@@ -17,7 +19,7 @@ export const getBookedSlots = async (year, month) => {
     return await response.json();
   } catch (error) {
     console.error('Error fetching booked slots:', error);
-    throw error; // Re-throw the error so the calling component can handle it
+    throw error;
   }
 };
 

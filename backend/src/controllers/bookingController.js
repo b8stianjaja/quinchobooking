@@ -2,6 +2,7 @@
 const bookingModel = require('../models/bookingModel');
 const adminModel = require('../models/adminModel');
 const availabilityService = require('../services/availabilityService');
+const validator = require('validator'); // Importamos la librería de sanitización
 
 // Importamos el pool de la base de datos para hacer una verificación directa.
 const { pool } = require('../config/db');
@@ -21,9 +22,18 @@ const getAvailability = async (req, res, next) => {
 
 const submitBookingRequest = async (req, res, next) => {
     try {
-        const { booking_date, slot_type } = req.body;
+        let { booking_date, slot_type, name, email, phone, guest_count, notes } = req.body;
 
-        // --- INICIO DE LA MEJORA ---
+        // --- INICIO DE LA MEJORA DE SEGURIDAD (SANITIZACIÓN) ---
+        // Aplicamos sanitización para prevenir XSS persistente.
+        // La función 'escape' convierte caracteres HTML especiales (<, >, ', ", /) 
+        // a sus entidades HTML correspondientes, neutralizando el código malicioso.
+        name = validator.escape(name.trim());
+        email = validator.normalizeEmail(email.trim()) || email; // Normaliza y limpia el email
+        phone = validator.escape(phone.trim());
+        notes = validator.escape(notes.trim());
+        // --- FIN DE LA MEJORA DE SEGURIDAD ---
+
         // 1. Verificamos si ya existe una reserva (pendiente o confirmada) para ese slot.
         const existingBookingQuery = `
             SELECT id FROM bookings
@@ -38,21 +48,27 @@ const submitBookingRequest = async (req, res, next) => {
                 message: 'Lo sentimos, esta fecha y horario ya han sido reservados. Por favor, refresca el calendario y elige otro.'
             });
         }
-        // --- FIN DE LA MEJORA ---
+        // --- FIN DE LA COMPROBACIÓN DE CONFLICTO ---
 
-        // 3. Si no hay conflicto, procedemos a crear la reserva.
-        const booking = await bookingModel.createBooking(req.body);
+        // 3. Si no hay conflicto, procedemos a crear la reserva con los datos sanitizados.
+        const booking = await bookingModel.createBooking({
+            name, email, phone, booking_date, slot_type, guest_count, notes
+        });
+
         res.status(201).json({ success: true, message: 'Booking request submitted successfully.', booking });
 
     } catch (error) {
-        // Si aun así ocurre un error (muy improbable), lo pasamos al manejador de errores.
+        // Si aun así ocurre un error, lo pasamos al manejador de errores.
         next(error);
     }
 };
 
 const adminLoginController = async (req, res, next) => {
     try {
-        const { username, password } = req.body;
+        // Sanitizamos el username antes de la verificación (prevención de XSS en la interfaz de login, aunque es menos crítico aquí)
+        const username = validator.escape(req.body.username.trim());
+        const password = req.body.password;
+
         const admin = await adminModel.verifyAdmin(username, password);
         if (admin) {
             req.session.admin = { id: admin.id, username: admin.username };
@@ -102,6 +118,7 @@ const checkAdminSessionController = (req, res) => {
 
 const getAllBookingsAdminController = async (req, res, next) => {
     try {
+        // NOTA: La salida de la BD (bookings) se asume limpia porque fue sanitizada en la entrada.
         const bookings = await bookingModel.getAllBookings();
         res.json(bookings);
     } catch (error) {
@@ -112,7 +129,8 @@ const getAllBookingsAdminController = async (req, res, next) => {
 const updateBookingStatusAdminController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        // Sanitizamos la entrada del estado para evitar inyecciones de datos no válidos, aunque no es XSS.
+        const status = validator.escape(req.body.status.trim()); 
         const updatedBooking = await bookingModel.updateBookingStatus(id, status);
         res.json({ success: true, message: 'Booking status updated.', booking: updatedBooking });
     } catch (error) {

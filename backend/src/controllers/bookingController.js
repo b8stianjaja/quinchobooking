@@ -3,7 +3,6 @@ const bookingModel = require('../models/bookingModel');
 const adminModel = require('../models/adminModel');
 const availabilityService = require('../services/availabilityService');
 const validator = require('validator');
-
 const { pool } = require('../config/db');
 
 const getAvailability = async (req, res, next) => {
@@ -74,7 +73,7 @@ const adminLoginController = async (req, res, next) => {
     }
 };
 
-// --- FUNCIÓN DE LOGOUT CORREGIDA ---
+// --- FUNCIÓN DE LOGOUT CORREGIDA Y SIMPLIFICADA ---
 const adminLogoutController = (req, res, next) => {
     // Ya no es necesario calcular un dominio dinámico.
     // Simplemente le decimos al navegador que borre la cookie para la ruta raíz.
@@ -84,6 +83,7 @@ const adminLogoutController = (req, res, next) => {
 
     req.session.destroy(err => {
         if (err) {
+            // Es importante pasar el error al manejador de errores global.
             return next(new Error('No se pudo cerrar la sesión, por favor intente de nuevo.'));
         }
         // El navegador sabe qué cookie borrar porque la petición viene del mismo dominio.

@@ -72,35 +72,9 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// --- LÓGICA DE COOKIE CENTRALIZADA Y CORREGIDA ---
-
-// 1. Definir la configuración base de la cookie.
-const cookieConfig = {
-  secure: isProduction,
-  httpOnly: true,
-  maxAge: 24 * 60 * 60 * 1000, // 1 día
-  sameSite: isProduction ? 'none' : 'lax',
-};
-
-// 2. Dinámicamente añadir el dominio principal si estamos en producción.
-//    Esta es la lógica robusta que extrajimos del logout y ahora aplicamos aquí.
-if (isProduction && frontendUrl) {
-  try {
-    const url = new URL(frontendUrl);
-    // Extrae el dominio principal (ej. onrender.com) del subdominio completo.
-    const hostnameParts = url.hostname.split('.');
-    if (hostnameParts.length >= 2) {
-      const rootDomain = hostnameParts.slice(-2).join('.');
-      // Le anteponemos un punto para que sea válida para TODOS los subdominios.
-      cookieConfig.domain = `.${rootDomain}`;
-      console.log(`[Cookie Auth] Dominio de cookie configurado para: ${cookieConfig.domain}`);
-    }
-  } catch (e) {
-    console.error('[Error Crítico] No se pudo parsear el FRONTEND_URL para configurar el dominio de la cookie:', e);
-  }
-}
-
-// 3. Usar la configuración de cookie generada en el middleware de sesión.
+// --- Configuración de Sesiones Definitiva ---
+// Al no especificar un 'domain', el navegador lo asignará automáticamente
+// al dominio del backend, que es el comportamiento correcto y seguro.
 app.use(
   session({
     name: 'quincho-booking.sid',
@@ -111,7 +85,14 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: cookieConfig, // Usamos la configuración dinámica y consistente
+    cookie: {
+      secure: isProduction,
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 1 día
+      sameSite: isProduction ? 'none' : 'lax',
+      // La propiedad 'domain' se ha eliminado intencionadamente para cumplir
+      // con las políticas de seguridad de los navegadores sobre sufijos públicos.
+    },
   })
 );
 

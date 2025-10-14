@@ -1,11 +1,14 @@
-// backend/src/controllers/bookingController.js
 const bookingModel = require('../models/bookingModel');
 const adminModel = require('../models/adminModel');
 const availabilityService = require('../services/availabilityService');
-const validator = require('validator'); // Importamos la librería de sanitización
+const validator = require('validator'); // Usado para sanitización (anti-XSS)
 
 // Importamos el pool de la base de datos para hacer una verificación directa.
 const { pool } = require('../config/db');
+
+// Define la condición para SameSite y Secure de forma consistente (DEBE coincidir con app.js)
+const IS_DEPLOYED_ENV = process.env.NODE_ENV === 'production' || !!process.env.FRONTEND_URL;
+
 
 const getAvailability = async (req, res, next) => {
     try {
@@ -22,19 +25,17 @@ const getAvailability = async (req, res, next) => {
 
 const submitBookingRequest = async (req, res, next) => {
     try {
+        // Desestructuramos y sanitizamos inmediatamente la data del cuerpo
         let { booking_date, slot_type, name, email, phone, guest_count, notes } = req.body;
 
-        // --- INICIO DE LA MEJORA DE SEGURIDAD (SANITIZACIÓN) ---
-        // Aplicamos sanitización para prevenir XSS persistente.
-        // La función 'escape' convierte caracteres HTML especiales (<, >, ', ", /) 
-        // a sus entidades HTML correspondientes, neutralizando el código malicioso.
+        // --- MEJORA DE SEGURIDAD (SANITIZACIÓN ANTI-XSS) ---
         name = validator.escape(name.trim());
-        email = validator.normalizeEmail(email.trim()) || email; // Normaliza y limpia el email
+        email = validator.normalizeEmail(email.trim()) || email; 
         phone = validator.escape(phone.trim());
         notes = validator.escape(notes.trim());
         // --- FIN DE LA MEJORA DE SEGURIDAD ---
 
-        // 1. Verificamos si ya existe una reserva (pendiente o confirmada) para ese slot.
+        // 1. Verificamos si ya existe una reserva activa para ese slot.
         const existingBookingQuery = `
             SELECT id FROM bookings
             WHERE booking_date = $1 AND slot_type = $2 AND (status = 'pending' OR status = 'confirmed')
@@ -43,14 +44,13 @@ const submitBookingRequest = async (req, res, next) => {
 
         // 2. Si encontramos una, devolvemos un error amigable.
         if (rows.length > 0) {
-            return res.status(409).json({ // 409 Conflict es el código de estado apropiado
+            return res.status(409).json({
                 success: false,
                 message: 'Lo sentimos, esta fecha y horario ya han sido reservados. Por favor, refresca el calendario y elige otro.'
             });
         }
-        // --- FIN DE LA COMPROBACIÓN DE CONFLICTO ---
-
-        // 3. Si no hay conflicto, procedemos a crear la reserva con los datos sanitizados.
+        
+        // 3. Creamos la reserva con datos sanitizados.
         const booking = await bookingModel.createBooking({
             name, email, phone, booking_date, slot_type, guest_count, notes
         });
@@ -58,14 +58,12 @@ const submitBookingRequest = async (req, res, next) => {
         res.status(201).json({ success: true, message: 'Booking request submitted successfully.', booking });
 
     } catch (error) {
-        // Si aun así ocurre un error, lo pasamos al manejador de errores.
         next(error);
     }
 };
 
 const adminLoginController = async (req, res, next) => {
     try {
-        // Sanitizamos el username antes de la verificación (prevención de XSS en la interfaz de login, aunque es menos crítico aquí)
         const username = validator.escape(req.body.username.trim());
         const password = req.body.password;
 
@@ -87,13 +85,20 @@ const adminLoginController = async (req, res, next) => {
 };
 
 const adminLogoutController = (req, res, next) => {
+    // CRÍTICO: Opciones de cookie para clearCookie DEBEN coincidir exactamente con las opciones de creación.
     const cookieOptions = {
       path: '/',
+      secure: IS_DEPLOYED_ENV, 
+      httpOnly: true, 
+      sameSite: IS_DEPLOYED_ENV ? 'none' : 'lax', 
     };
-    if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
+    
+    // Si estamos en un entorno de despliegue, también configuramos el dominio para la eliminación
+    if (IS_DEPLOYED_ENV && process.env.FRONTEND_URL) {
         try {
             const url = new URL(process.env.FRONTEND_URL);
-            cookieOptions.domain = '.' + url.hostname.replace(/^www\./, '');
+            // Esto permite que la cookie sea eliminada correctamente en subdominios o dominios raíz.
+            cookieOptions.domain = '.' + url.hostname.replace(/^www\./, ''); 
         } catch (e) {
             console.error('Could not parse FRONTEND_URL for logout cookie domain', e);
         }
@@ -103,6 +108,8 @@ const adminLogoutController = (req, res, next) => {
         if (err) {
             return next(new Error('Could not log out, please try again.'));
         }
+        
+        // Se llama clearCookie con las opciones CRÍTICAS (Secure, HttpOnly, SameSite, Domain)
         res.clearCookie('quincho-booking.sid', cookieOptions);
         res.status(200).json({ success: true, message: 'Logout successful.' });
     });
@@ -118,7 +125,6 @@ const checkAdminSessionController = (req, res) => {
 
 const getAllBookingsAdminController = async (req, res, next) => {
     try {
-        // NOTA: La salida de la BD (bookings) se asume limpia porque fue sanitizada en la entrada.
         const bookings = await bookingModel.getAllBookings();
         res.json(bookings);
     } catch (error) {
@@ -129,8 +135,7 @@ const getAllBookingsAdminController = async (req, res, next) => {
 const updateBookingStatusAdminController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        // Sanitizamos la entrada del estado para evitar inyecciones de datos no válidos, aunque no es XSS.
-        const status = validator.escape(req.body.status.trim()); 
+        const status = validator.escape(req.body.status.trim()); // Sanitización
         const updatedBooking = await bookingModel.updateBookingStatus(id, status);
         res.json({ success: true, message: 'Booking status updated.', booking: updatedBooking });
     } catch (error) {

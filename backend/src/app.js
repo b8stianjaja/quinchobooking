@@ -1,9 +1,8 @@
-// backend/src/app.js
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const morgan = require('morgan'); // Recomendado: Logger para debugging en producción.
-const helmet = require('helmet'); // Recomendado: Middleware de seguridad esencial.
+const morgan = require('morgan');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const pgSession = require('connect-pg-simple')(session);
 
@@ -13,67 +12,50 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// Middleware esencial para que Express confíe en los encabezados de proxy de Render.
+// CRÍTICO: Permite que Express confíe en los encabezados de proxy (Render) para HTTPS,
+// lo que es necesario para que la cookie sea marcada como Secure.
 app.set('trust proxy', 1);
 
 // --- Middlewares de Configuración y Seguridad ---
-
-// 1. Seguridad (Helmet): protege contra vulnerabilidades web conocidas.
-// Configurado para desactivar headers no esenciales para APIs (Webhint Advisory fix).
 app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    xXssProtection: false,
-  })
-);
-app.use(express.json()); // 2. Parser: permite a tu app entender peticiones con JSON.
-app.use(morgan('dev')); // 3. Logger: Muestra las peticiones en la consola (muy útil en logs de Render).
+  // Desactivamos headers no esenciales para APIs REST.
+  helmet({ contentSecurityPolicy: false, xXssProtection: false })
+); 
+app.use(express.json()); 
+app.use(morgan('dev'));
 
-// --- Configuración de CORS (Cross-Origin Resource Sharing) ---
-// Define qué dominios de frontend tienen permiso para comunicarse con este backend.
-const allowedOrigins = ['http://localhost:5173']; // Origen para desarrollo local
+// --- Configuración de CORS ---
+const allowedOrigins = ['http://localhost:5173']; 
 const frontendUrl = process.env.FRONTEND_URL;
 
-// Determina si estamos en un entorno de despliegue (producción o staging)
-const isProduction =
-  process.env.NODE_ENV === 'production' || !!process.env.FRONTEND_URL;
-
 if (frontendUrl) {
-  allowedOrigins.push(frontendUrl);
-  // Añade la versión con y sin 'www' por si acaso.
-  if (frontendUrl.includes('www.')) {
+    allowedOrigins.push(frontendUrl);
     allowedOrigins.push(frontendUrl.replace('www.', ''));
-  } else {
-    allowedOrigins.push(frontendUrl.replace('https://', 'https://www.'));
-  }
+    allowedOrigins.push(frontendUrl.replace('https://', 'https://www'));
 }
 
-app.use(
-  cors({
+app.use(cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Origen no permitido por CORS'));
-      }
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Origen no permitido por CORS'));
+        }
     },
-    credentials: true, // ¡Crítico para que las cookies de sesión funcionen!
-  })
-);
+    credentials: true 
+}));
 
 // --- Rate Limiter ---
-// Protege tus rutas contra un exceso de peticiones (ataques de fuerza bruta).
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Limita cada IP a 100 peticiones por ventana de 15 min.
-  standardHeaders: true,
-  legacyHeaders: false,
-  message:
-    'Demasiadas peticiones desde esta IP, por favor intente de nuevo en 15 minutos.',
+    windowMs: 15 * 60 * 1000, 
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Demasiadas peticiones desde esta IP, por favor intente de nuevo en 15 minutos.'
 });
 app.use('/api/', apiLimiter);
 
-// --- Middleware para asegurar que las respuestas de la API no se cacheen (Cache-Control fix) ---
+// --- Middleware para forzar NO CACHE ---
 app.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.set('Pragma', 'no-cache');
@@ -81,34 +63,34 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// --- Configuración de Sesiones ---
-// Se usa la base de datos para almacenar sesiones.
-app.use(
-  session({
+
+// --- Configuración de Sesiones (FIX CRÍTICO) ---
+const IS_DEPLOYED_ENV = process.env.NODE_ENV === 'production' || !!process.env.FRONTEND_URL;
+
+app.use(session({
     name: 'quincho-booking.sid',
     store: new pgSession({
-      pool: pool,
-      tableName: 'sessions',
+        pool: pool,
+        tableName: 'sessions'
     }),
-    secret: process.env.SESSION_SECRET, // ¡Debe ser una variable de entorno!
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      // FIX: Configuraciones de seguridad críticas para cookies entre dominios (Webhint fix)
-      // En producción, SÓLO se envía por HTTPS y con SameSite=None
-      secure: isProduction,
-      httpOnly: true, // Previene que el JavaScript del cliente acceda a la cookie.
-      maxAge: 24 * 60 * 60 * 1000, // 1 día de duración.
-      sameSite: isProduction ? 'none' : 'lax', // Requerido para cookies entre dominios.
-    },
-  })
-);
+        // CRÍTICO 1: Debe ser TRUE (Secure) porque SameSite=None lo requiere, y Render usa HTTPS.
+        secure: IS_DEPLOYED_ENV, 
+        httpOnly: true, 
+        maxAge: 24 * 60 * 60 * 1000, 
+        // CRÍTICO 2: Debe ser 'none' para cookies cross-site. 
+        sameSite: IS_DEPLOYED_ENV ? 'none' : 'lax', 
+    }
+}));
+
 
 // --- Rutas de la API ---
 app.use('/api', bookingRoutes);
 
 // --- Manejador de Errores ---
-// Este es el último middleware. Atrapa cualquier error que ocurra en las rutas.
 app.use(errorHandler);
 
 module.exports = app;

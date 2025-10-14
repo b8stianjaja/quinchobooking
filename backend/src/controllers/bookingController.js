@@ -3,6 +3,9 @@ const bookingModel = require('../models/bookingModel');
 const adminModel = require('../models/adminModel');
 const availabilityService = require('../services/availabilityService');
 
+// Importamos el pool de la base de datos para hacer una verificación directa.
+const { pool } = require('../config/db');
+
 const getAvailability = async (req, res, next) => {
     try {
         const { year, month } = req.query;
@@ -18,9 +21,31 @@ const getAvailability = async (req, res, next) => {
 
 const submitBookingRequest = async (req, res, next) => {
     try {
+        const { booking_date, slot_type } = req.body;
+
+        // --- INICIO DE LA MEJORA ---
+        // 1. Verificamos si ya existe una reserva (pendiente o confirmada) para ese slot.
+        const existingBookingQuery = `
+            SELECT id FROM bookings
+            WHERE booking_date = $1 AND slot_type = $2 AND (status = 'pending' OR status = 'confirmed')
+        `;
+        const { rows } = await pool.query(existingBookingQuery, [booking_date, slot_type]);
+
+        // 2. Si encontramos una, devolvemos un error amigable.
+        if (rows.length > 0) {
+            return res.status(409).json({ // 409 Conflict es el código de estado apropiado
+                success: false,
+                message: 'Lo sentimos, esta fecha y horario ya han sido reservados. Por favor, refresca el calendario y elige otro.'
+            });
+        }
+        // --- FIN DE LA MEJORA ---
+
+        // 3. Si no hay conflicto, procedemos a crear la reserva.
         const booking = await bookingModel.createBooking(req.body);
         res.status(201).json({ success: true, message: 'Booking request submitted successfully.', booking });
+
     } catch (error) {
+        // Si aun así ocurre un error (muy improbable), lo pasamos al manejador de errores.
         next(error);
     }
 };
@@ -31,9 +56,6 @@ const adminLoginController = async (req, res, next) => {
         const admin = await adminModel.verifyAdmin(username, password);
         if (admin) {
             req.session.admin = { id: admin.id, username: admin.username };
-
-            // FIX: Explicitly save the session to the database and wait for the
-            // callback to ensure it's written before we respond to the client.
             req.session.save((err) => {
                 if (err) {
                     return next(err);
@@ -49,8 +71,6 @@ const adminLoginController = async (req, res, next) => {
 };
 
 const adminLogoutController = (req, res, next) => {
-    // FIX: Define cookie options to ensure the cookie is cleared correctly from the browser.
-    // It must match the options used to set it (domain and path).
     const cookieOptions = {
       path: '/',
     };

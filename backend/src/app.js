@@ -13,7 +13,7 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// Confiar en los encabezados de proxy de Render.
+// Confiar en los encabezados de proxy de plataformas como Render. Es crucial.
 app.set('trust proxy', 1);
 
 // --- Middlewares de Configuración y Seguridad ---
@@ -72,7 +72,7 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// --- Configuración de Sesiones (Lógica de Cookie Mejorada) ---
+// --- LÓGICA DE COOKIE CENTRALIZADA Y CORREGIDA ---
 
 // 1. Definir la configuración base de la cookie.
 const cookieConfig = {
@@ -83,20 +83,20 @@ const cookieConfig = {
 };
 
 // 2. Dinámicamente añadir el dominio principal si estamos en producción.
-//    Esto es más robusto que un valor fijo.
+//    Esta es la lógica robusta que extrajimos del logout y ahora aplicamos aquí.
 if (isProduction && frontendUrl) {
   try {
     const url = new URL(frontendUrl);
-    // Extrae el dominio principal (ej. onrender.com) del subdominio.
+    // Extrae el dominio principal (ej. onrender.com) del subdominio completo.
     const hostnameParts = url.hostname.split('.');
-    const domain = hostnameParts.slice(-2).join('.'); // Obtiene 'onrender.com' de 'sub.onrender.com'
-    
-    // Le anteponemos un punto para que sea válida para todos los subdominios.
-    cookieConfig.domain = `.${domain}`; 
-    
-    console.log(`[Cookie] Domain set to: ${cookieConfig.domain}`);
+    if (hostnameParts.length >= 2) {
+      const rootDomain = hostnameParts.slice(-2).join('.');
+      // Le anteponemos un punto para que sea válida para TODOS los subdominios.
+      cookieConfig.domain = `.${rootDomain}`;
+      console.log(`[Cookie Auth] Dominio de cookie configurado para: ${cookieConfig.domain}`);
+    }
   } catch (e) {
-    console.error('Error: No se pudo parsear el FRONTEND_URL para configurar el dominio de la cookie:', e);
+    console.error('[Error Crítico] No se pudo parsear el FRONTEND_URL para configurar el dominio de la cookie:', e);
   }
 }
 
@@ -111,10 +111,9 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: cookieConfig, // Usamos la configuración dinámica
+    cookie: cookieConfig, // Usamos la configuración dinámica y consistente
   })
 );
-
 
 // --- Rutas de la API ---
 app.use('/api', bookingRoutes);

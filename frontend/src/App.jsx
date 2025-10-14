@@ -27,11 +27,8 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const [adminUser, setAdminUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Empezamos en 'true' para mostrar carga inicial
 
-  // --- FIX: handleLoginSuccess now performs the navigation directly ---
-  // This makes the code's intent clearer: when login succeeds,
-  // update the state AND navigate immediately.
   const handleLoginSuccess = (user) => {
     setAdminUser(user);
     toast.success(`Bienvenido, ${user.username || 'Admin'}`);
@@ -48,19 +45,28 @@ function AppContent() {
       .catch(() => toast.error('No se pudo cerrar la sesión.'));
   };
 
-  // Checks for an existing session when the app loads
+  // --- LÓGICA MEJORADA ---
+  // Este efecto se ejecuta solo una vez cuando la aplicación carga.
   useEffect(() => {
+    // Intentamos verificar si ya existe una sesión.
     checkSession()
       .then((data) => {
         if (data && data.admin) {
+          // Si la sesión existe, guardamos el usuario.
           setAdminUser(data.admin);
         }
       })
-      .finally(() => setLoading(false));
-  }, []);
-
-  // --- REMOVED: The useEffect that watched for isLoggedIn is no longer needed ---
-  // The navigation is now handled directly by handleLoginSuccess.
+      .catch((err) => {
+        // A diferencia de antes, ahora "atrapamos" el error.
+        // Si el error es "No active session", es un comportamiento esperado,
+        // por lo que no hacemos nada y la consola se mantendrá limpia.
+        console.log('No active session found on initial load. This is normal.');
+      })
+      .finally(() => {
+        // Sea cual sea el resultado, terminamos la carga.
+        setLoading(false);
+      });
+  }, []); // El array vacío asegura que esto solo se ejecute una vez.
 
   if (loading) {
     return (
@@ -92,8 +98,6 @@ function AppContent() {
               </>
             }
           />
-
-          {/* If the user is logged in and tries to visit /login, redirect them to the dashboard */}
           <Route
             path="/admin/login"
             element={
@@ -104,19 +108,12 @@ function AppContent() {
               )
             }
           />
-
-          {/* If the user is logged in, going to /admin will redirect to the dashboard, otherwise to the login page */}
           <Route
             path="/admin"
             element={
-              <Navigate
-                to={isLoggedIn ? '/admin/dashboard' : '/admin/login'}
-                replace
-              />
+              <Navigate to={isLoggedIn ? '/admin/dashboard' : '/admin/login'} replace />
             }
           />
-
-          {/* This is the protected route for the dashboard. It requires a user to be logged in. */}
           <Route
             path="/admin/dashboard"
             element={

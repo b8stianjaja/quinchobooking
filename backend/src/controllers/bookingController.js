@@ -20,11 +20,20 @@ const getAvailability = async (req, res, next) => {
 
 const submitBookingRequest = async (req, res, next) => {
     try {
-        let { booking_date, slot_type, name, email, phone, guest_count, notes } = req.body;
+        // Se elimina 'email' de la destructuración
+        let { booking_date, slot_type, name, phone, guest_count, notes } = req.body;
+
+        // Validaciones básicas (puedes añadir más si necesitas)
+        if (!name || !phone || !booking_date || !slot_type) {
+             return res.status(400).json({
+                success: false,
+                message: 'Faltan campos requeridos (Nombre, Teléfono, Fecha, Franja Horaria).'
+            });
+        }
 
         name = validator.escape(name.trim());
-        email = validator.normalizeEmail(email.trim()) || email;
-        phone = phone ? validator.escape(phone.trim()) : '';
+        // Se elimina la normalización de 'email'
+        phone = validator.escape(phone.trim()); // Teléfono ahora es requerido
         notes = notes ? validator.escape(notes.trim()) : '';
 
         const existingBookingQuery = `
@@ -40,14 +49,19 @@ const submitBookingRequest = async (req, res, next) => {
             });
         }
 
+        // Se pasa el objeto a createBooking sin 'email'
         const booking = await bookingModel.createBooking({
-            name, email, phone, booking_date, slot_type, guest_count, notes
+            name, phone, booking_date, slot_type, guest_count, notes
         });
 
         res.status(201).json({ success: true, message: 'Booking request submitted successfully.', booking });
 
     } catch (error) {
-        next(error);
+        // Manejo de errores específicos de validación o base de datos si es necesario
+        if (error.code === '23502') { // Error de columna NOT NULL (si phone fuera null)
+             return res.status(400).json({ success: false, message: 'El campo Teléfono es obligatorio.' });
+        }
+        next(error); // Pasa otros errores al manejador global
     }
 };
 
@@ -73,20 +87,15 @@ const adminLoginController = async (req, res, next) => {
     }
 };
 
-// --- FUNCIÓN DE LOGOUT CORREGIDA Y SIMPLIFICADA ---
 const adminLogoutController = (req, res, next) => {
-    // Ya no es necesario calcular un dominio dinámico.
-    // Simplemente le decimos al navegador que borre la cookie para la ruta raíz.
     const cookieOptions = {
       path: '/',
     };
 
     req.session.destroy(err => {
         if (err) {
-            // Es importante pasar el error al manejador de errores global.
             return next(new Error('No se pudo cerrar la sesión, por favor intente de nuevo.'));
         }
-        // El navegador sabe qué cookie borrar porque la petición viene del mismo dominio.
         res.clearCookie('quincho-booking.sid', cookieOptions);
         res.status(200).json({ success: true, message: 'Logout successful.' });
     });
@@ -112,8 +121,15 @@ const getAllBookingsAdminController = async (req, res, next) => {
 const updateBookingStatusAdminController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const status = validator.escape(req.body.status.trim()); 
+        const status = validator.escape(req.body.status.trim());
+        // Asegurarse que el status es uno de los permitidos
+        if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
+            return res.status(400).json({ success: false, message: 'Estado inválido.' });
+        }
         const updatedBooking = await bookingModel.updateBookingStatus(id, status);
+        if (!updatedBooking) {
+            return res.status(404).json({ success: false, message: 'Reserva no encontrada.' });
+        }
         res.json({ success: true, message: 'Booking status updated.', booking: updatedBooking });
     } catch (error) {
         next(error);
@@ -123,6 +139,7 @@ const updateBookingStatusAdminController = async (req, res, next) => {
 const deleteBookingAdminController = async (req, res, next) => {
     try {
         const { id } = req.params;
+        // Podrías verificar si la reserva existe antes de intentar borrarla
         await bookingModel.deleteBooking(id);
         res.json({ success: true, message: 'Booking deleted successfully.' });
     } catch (error) {

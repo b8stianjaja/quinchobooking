@@ -1,3 +1,4 @@
+// frontend/src/components/features/Booking/BookingForm.jsx
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types'; // Import PropTypes
 import { toast } from 'react-hot-toast';
@@ -12,9 +13,9 @@ function BookingForm({
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formStatus, setFormStatus] = useState({ message: '', type: '' });
+  // Estado inicial sin el campo 'email'
   const [formDataState, setFormDataState] = useState({
     name: '',
-    email: '',
     phone: '',
     guests: '',
     notes: '',
@@ -30,7 +31,8 @@ function BookingForm({
     : 'Ninguna fecha seleccionada';
 
   useEffect(() => {
-    setFormDataState({ name: '', email: '', phone: '', guests: '', notes: '' });
+    // Resetea el estado sin 'email'
+    setFormDataState({ name: '', phone: '', guests: '', notes: '' });
     setFormStatus({ message: '', type: '' });
   }, [selectedDate, selectedSlot]);
 
@@ -54,11 +56,11 @@ function BookingForm({
     const day = String(selectedDate.getDate()).padStart(2, '0');
     const bookingDateString = `${year}-${month}-${day}`;
 
+    // Payload sin 'email'
     const bookingPayload = {
       booking_date: bookingDateString,
       slot_type: selectedSlot,
       name: formDataState.name,
-      email: formDataState.email,
       phone: formDataState.phone,
       guest_count: formDataState.guests
         ? parseInt(formDataState.guests, 10)
@@ -75,13 +77,8 @@ function BookingForm({
             'Tu solicitud ha sido enviada con éxito. Te contactaremos pronto para confirmar. ¡Gracias!',
           type: 'success',
         });
-        setFormDataState({
-          name: '',
-          email: '',
-          phone: '',
-          guests: '',
-          notes: '',
-        });
+        // Resetea el estado sin 'email'
+        setFormDataState({ name: '', phone: '', guests: '', notes: '' });
         if (onBookingSuccess) onBookingSuccess();
       } else {
         toast.error(response.message || 'No se pudo enviar la solicitud.');
@@ -201,30 +198,13 @@ function BookingForm({
             placeholder="Ej: Juan Pérez"
           />
         </div>
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Correo Electrónico<span className="text-red-500 ml-0.5">*</span>
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formDataState.email}
-            onChange={handleInputChange}
-            required
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400 disabled:bg-gray-100"
-            placeholder="Ej: juan.perez@correo.com"
-          />
-        </div>
+        {/* Campo de Email Eliminado */}
         <div>
           <label
             htmlFor="phone"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Teléfono
+            Teléfono<span className="text-red-500 ml-0.5">*</span> {/* Hacerlo requerido */}
           </label>
           <input
             type="tel"
@@ -232,6 +212,7 @@ function BookingForm({
             name="phone"
             value={formDataState.phone}
             onChange={handleInputChange}
+            required 
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400 disabled:bg-gray-100"
             placeholder="Ej: +56 9 1234 5678"
           />
@@ -250,7 +231,7 @@ function BookingForm({
             value={formDataState.guests}
             onChange={handleInputChange}
             min="1"
-            max="50"
+            max="50" // Puedes ajustar el máximo si es necesario
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400 disabled:bg-gray-100"
             placeholder="Ej: 25"
           />

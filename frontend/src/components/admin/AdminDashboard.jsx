@@ -70,12 +70,12 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     } catch (err) {
       toast.error(err.message || 'No se pudieron cargar las reservas.');
       if (err.message?.toLowerCase().includes('unauthorized')) {
-        if (onLogout) onLogout();
+        if (onLogout) onLogout(); // Se llama a onLogout si hay error de autorización
       }
     } finally {
       setIsLoading(false);
     }
-  }, [onLogout]);
+  }, [onLogout]); // onLogout se añade como dependencia
 
   useEffect(() => {
     if (currentAdminUser) {
@@ -95,12 +95,18 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     const promise = updateBookingStatusAdmin(bookingId, newStatus);
     toast.promise(promise, {
       loading: 'Actualizando estado...',
-      success: () => {
-        fetchBookings(); // Refreshes the data on success
-        return `Reserva actualizada con éxito.`;
+      success: (data) => {
+         if (data.success) {
+            fetchBookings(); // Refreshes the data on success
+            return `Reserva actualizada con éxito.`;
+         } else {
+             // Si el backend devuelve success: false
+             throw new Error(data.message || 'No se pudo actualizar la reserva.');
+         }
       },
       error: (err) => `Error: ${err.message}`,
     });
+    // Limpiar el estado de edición para esta reserva después de intentar actualizar
     setEditStatus((prev) => {
       const newState = { ...prev };
       delete newState[bookingId];
@@ -119,22 +125,27 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     const promise = deleteBookingAdmin(bookingId);
     toast.promise(promise, {
       loading: 'Eliminando reserva...',
-      success: () => {
-        fetchBookings(); // Refreshes the data on success
-        return `Reserva eliminada con éxito.`;
+      success: (data) => {
+        if (data.success) {
+            fetchBookings(); // Refreshes the data on success
+            return `Reserva eliminada con éxito.`;
+        } else {
+            throw new Error(data.message || 'No se pudo eliminar la reserva.');
+        }
       },
       error: (err) => `Error: ${err.message}`,
     });
   };
 
+  // Actualizar filtro para buscar solo por nombre o teléfono
   const filteredBookings = useMemo(
     () =>
       bookings.filter(
         (booking) =>
           (booking.name &&
             booking.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (booking.email &&
-            booking.email.toLowerCase().includes(searchTerm.toLowerCase()))
+          (booking.phone && // Añadir búsqueda por teléfono
+            booking.phone.toLowerCase().includes(searchTerm.toLowerCase()))
       ),
     [bookings, searchTerm]
   );
@@ -164,6 +175,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
             </p>
           </div>
           <button
+             // Pasamos navigate a onLogout si es necesario
             onClick={() => onLogout(navigate)}
             className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 font-semibold transition-colors duration-200"
           >
@@ -270,7 +282,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
               </div>
               <input
                 type="text"
-                placeholder="Buscar por nombre o email..."
+                placeholder="Buscar por nombre o teléfono..." // Actualizar placeholder
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="block w-full rounded-md border-gray-300 py-2 pl-10 pr-3 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
@@ -281,10 +293,12 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  {/* Actualizar headers de la tabla */}
                   {[
                     'Cliente',
-                    'Contacto',
+                    'Teléfono', // Cambiado
                     'Detalles del Evento',
+                    'Invitados', // Añadido
                     'Estado',
                     'Acciones',
                   ].map((header) => (
@@ -301,8 +315,9 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
               <tbody className="bg-white divide-y divide-gray-200">
                 {isLoading ? (
                   <tr>
+                    {/* Ajustar colSpan */}
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="text-center p-8 text-gray-500"
                     >
                       Cargando reservas...
@@ -310,8 +325,9 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                   </tr>
                 ) : filteredBookings.length === 0 ? (
                   <tr>
+                    {/* Ajustar colSpan */}
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="text-center p-8 text-gray-500"
                     >
                       No se encontraron reservas.
@@ -325,14 +341,13 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-semibold text-gray-900">
-                          {booking.name}
+                          {booking.name || '-'}
                         </div>
                       </td>
+                      {/* Mostrar Teléfono */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-600">
-                          {booking.email}
-                          <br />
-                          {booking.phone}
+                          {booking.phone || '-'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -343,13 +358,19 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric',
-                              timeZone: 'UTC',
+                              timeZone: 'UTC', // Asegurar consistencia de fecha
                             }
                           )}
                           <br />
                           <span className="font-semibold capitalize">
-                            {booking.slot_type}
+                            {booking.slot_type === 'day' ? 'Día' : booking.slot_type === 'night' ? 'Noche' : booking.slot_type}
                           </span>
+                        </div>
+                      </td>
+                      {/* Mostrar Invitados */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-600 text-center">
+                          {booking.guest_count || '-'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -362,7 +383,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                             onChange={(e) =>
                               handleStatusChange(booking.id, e.target.value)
                             }
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-xs"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-xs py-1.5 px-2" // Ajustar padding si es necesario
                           >
                             <option value="pending">Pendiente</option>
                             <option value="confirmed">Confirmada</option>
@@ -374,7 +395,8 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                               !editStatus[booking.id] ||
                               editStatus[booking.id] === booking.status
                             }
-                            className="p-2 text-green-600 hover:text-green-900 disabled:text-gray-300"
+                            className="p-2 text-green-600 hover:text-green-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                            aria-label="Guardar estado"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -392,6 +414,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                           <button
                             onClick={() => handleDeleteBooking(booking.id)}
                             className="p-2 text-red-600 hover:text-red-900"
+                            aria-label="Eliminar reserva"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -422,8 +445,9 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
 
 AdminDashboard.propTypes = {
   currentAdminUser: PropTypes.shape({
+    id: PropTypes.number, // O el tipo de dato que sea el ID
     username: PropTypes.string,
-  }).isRequired,
+  }), // Puede ser null si no hay sesión
   onLogout: PropTypes.func.isRequired,
 };
 

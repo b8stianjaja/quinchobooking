@@ -1,100 +1,88 @@
 // src/components/features/Services.jsx
 import React from 'react';
 
-// --- IMPORTA TUS ÍCONOS AQUÍ ---
-// Asegúrate de que las rutas y los nombres de archivo sean correctos.
-import piscinaIcon from '../../assets/icons/piscina.png';
-import audioIcon from '../../assets/icons/audio.png';
-import estacionamientoIcon from '../../assets/icons/estacionamiento.png';
-import parrillaIcon from '../../assets/icons/parrilla.png';
-import hornoIcon from '../../assets/icons/horno.png';
-import cocinaIcon from '../../assets/icons/cocina.png';
-import mobiliarioIcon from '../../assets/icons/mobiliario.png';
-import vajillaIcon from '../../assets/icons/vajilla.png';
-import refrigeracionIcon from '../../assets/icons/refrigeracion.png';
-import banosIcon from '../../assets/icons/banos.png';
-import pingPongIcon from '../../assets/icons/ping-pong.png';
-import camaSaltarinaIcon from '../../assets/icons/cama-saltarina.png';
-import tacaTacaIcon from '../../assets/icons/tacataca.png';
+// --- IMPORTA SOLO EL ÍCONO DE TACA TACA ---
+import tacaTacaIcon from '../../assets/icons/taca-taca.png'; // Asegúrate que la ruta y nombre sean correctos
 
-// Lista de servicios actualizada para usar los íconos importados
+// Lista de servicios: emojis para la mayoría, imagen importada para Taca Taca
 const servicesList = [
   {
-    icon: piscinaIcon,
+    icon: '🏊', // Emoji
     name: 'Piscina',
     description:
       'Disfruta de nuestra refrescante piscina, ideal para los días de sol y para relajarse en familia o con amigos.',
   },
   {
-    icon: audioIcon,
+    icon: '🎵', // Emoji
     name: 'Sistema de Audio',
     description:
       'Equipo de música con conexión Bluetooth para ambientar tu evento.',
   },
   {
-    icon: estacionamientoIcon,
+    icon: '🚗', // Emoji
     name: 'Estacionamiento',
     description:
       'Espacio de estacionamiento seguro y conveniente para ti y tus invitados.',
   },
   {
-    icon: parrillaIcon,
+    icon: '🔥', // Emoji
     name: 'Parrilla',
     description:
       'Amplia parrilla con todos los implementos necesarios para un asado perfecto.',
   },
   {
-    icon: hornoIcon,
+    icon: '🍞', // Emoji
     name: 'Horno',
     description: 'Disponible para tus preparaciones horneadas',
   },
   {
-    icon: cocinaIcon,
+    icon: '🎛️', // Emoji
     name: 'Cocina',
     description:
       'Zona de preparación con lavaplatos y el espacio necesario para organizar cómodamente tus alimentos.',
   },
   {
-    icon: mobiliarioIcon,
+    icon: '🪑', // Emoji
     name: 'Mobiliario Completo',
     description:
       'Mesas, sillas y cómodos sillones para tus invitados, tanto en interior como exterior.',
   },
   {
-    icon: vajillaIcon,
+    icon: '🍽️', // Emoji
     name: 'Vajilla y Utensilios',
     description:
       'Set completo de platos, vasos, cubiertos y utensilios de cocina y parrilla.',
   },
   {
-    icon: refrigeracionIcon,
+    icon: '🧊', // Emoji
     name: 'Refrigeración',
     description:
       'Refrigerador de gran capacidad y conservadora para mantener tus bebidas y alimentos frescos.',
   },
   {
-    icon: banosIcon,
+    icon: '🚽', // Emoji
     name: 'Baños Equipados',
     description:
       'Baños limpios, modernos y completamente equipados para damas y varones.',
   },
   {
-    icon: pingPongIcon,
+    icon: '🏓', // Emoji
     name: 'Mesa de Ping Pong',
     description:
       '¡Que la diversión no pare! Desafía a tus amigos y familia en nuestra mesa de ping pong, con paletas y pelotas incluidas.',
   },
   {
-    icon: camaSaltarinaIcon,
+    icon: '🤸', // Emoji
     name: 'Cama Saltarina',
     description:
       '¡Energía y risas aseguradas para los más pequeños! Disfruten de nuestra cama saltarina amplia y segura.',
   },
   {
-    icon: tacaTacaIcon,
+    icon: tacaTacaIcon, // Imagen importada
     name: 'Taca Taca',
     description:
       '¿Listos para la revancha? Arma los equipos y disfruta de entretenidos partidos en nuestro Taca Taca.',
+    isImage: true, // Añadimos una bandera para identificar que es una imagen
   },
 ];
 
@@ -122,12 +110,18 @@ function Services() {
               key={`${service.name}-${index}`}
               className="bg-white font-hero-title p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center"
             >
-              {/* --- CAMBIO: Se usa una etiqueta <img> en lugar de un div --- */}
-              <img
-                src={service.icon}
-                alt={`Ícono de ${service.name}`}
-                className="w-16 h-16 mb-4" // Ajusta el tamaño según necesites
-              />
+              {/* --- LÓGICA CONDICIONAL PARA RENDERIZAR EL ÍCONO --- */}
+              {service.isImage ? (
+                // Si es una imagen (Taca Taca), usa <img>
+                <img
+                  src={service.icon}
+                  alt={`Ícono de ${service.name}`}
+                  className="w-16 h-16 mb-4 object-contain" // object-contain previene distorsión
+                />
+              ) : (
+                // Si no, usa un div para el emoji (como antes)
+                <div className="text-5xl mb-4">{service.icon}</div>
+              )}
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 {service.name}
               </h3>
@@ -142,4 +136,4 @@ function Services() {
   );
 }
 
-export default Services; 
+export default Services;

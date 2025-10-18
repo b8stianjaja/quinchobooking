@@ -28,7 +28,7 @@ function Hero() {
       style={heroStyle} //
     >
       {/* Overlay oscuro */}
-      <div className="absolute inset-0 bg-black/40"></div>
+      <div className="absolute inset-0 bg-black/20"></div>
       {/* Contenido */}
       <div className="relative z-10 text-center p-6 max-w-3xl mx-auto">
         {/* Título */}

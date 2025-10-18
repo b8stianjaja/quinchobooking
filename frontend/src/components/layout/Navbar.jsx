@@ -82,7 +82,7 @@ function Navbar() {
     ));
 
   return (
-    <nav className="bg-white sticky top-0 z-50 border-b-7 border-gray-100">
+    <nav className="bg-white sticky top-0 z-50 border-b-7 border-gray-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center h-16">
         <div className="flex-shrink-0">
           <a href="#hero" className="flex items-center"></a>

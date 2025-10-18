@@ -3,9 +3,15 @@
 @font-face {
   font-family: 'Marcellus'; /* Le damos un nombre único para usarla */
   src: url('/src/assets/fonts/Marcellus.ttf') format('truetype');
-  /* Esta ruta es relativa desde index.css (en src/styles) 
+  /* Esta ruta es relativa desde index.css (en src/styles)
      hasta Amiri.ttf (en src/assets/fonts) */
 }
+
+/* --- AÑADIDO PARA SCROLL SUAVE --- */
+html {
+  scroll-behavior: smooth;
+}
+/* ---------------------------------- */
 
 /* Mantén tu importación de Tailwind y cualquier otra configuración base que tenías */
 

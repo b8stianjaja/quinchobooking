@@ -3,7 +3,7 @@ import React from 'react';
 function Contact() {
   // A valid Google Maps embed URL for the location mentioned in the component.
   const mapEmbedUrl =
-    'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3342.361993301095!2d-70.9634!3d-32.8365!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x968813f2b4b45a0d%3A0x8e1e7a5c6d3b3b3b!2sLlay-Llay%2C%20Valpara%C3%ADso!5e0!3m2!1sen!2scl!4v1678886155555!5m2!1sen!2scl';
+    'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3352.2202134705503!2d-70.98751632449282!3d-32.83942057363771!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x96883b004de10cf5%3A0xd143f4bdcd19652b!2sQuincho%20el%20Ruco!5e0!3m2!1ses!2scl!4v1760810461781!5m2!1ses!2scl';
 
   return (
     <section id="contact" className="py-16 md:py-24 bg-white">

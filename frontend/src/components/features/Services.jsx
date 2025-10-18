@@ -1,102 +1,106 @@
 // src/components/features/Services.jsx
 import React from 'react';
 
-// Lista de servicios/comodidades. Puedes expandir esto con más detalles o una estructura de objetos más compleja.
-// Para los iconos, usaremos emojis/Unicode por ahora para mantenerlo simple y sin SVGs.
+// --- IMPORTA TUS ÍCONOS AQUÍ ---
+// Asegúrate de que las rutas y los nombres de archivo sean correctos.
+import piscinaIcon from '../../assets/icons/piscina.png';
+import audioIcon from '../../assets/icons/audio.png';
+import estacionamientoIcon from '../../assets/icons/estacionamiento.png';
+import parrillaIcon from '../../assets/icons/parrilla.png';
+import hornoIcon from '../../assets/icons/horno.png';
+import cocinaIcon from '../../assets/icons/cocina.png';
+import mobiliarioIcon from '../../assets/icons/mobiliario.png';
+import vajillaIcon from '../../assets/icons/vajilla.png';
+import refrigeracionIcon from '../../assets/icons/refrigeracion.png';
+import banosIcon from '../../assets/icons/banos.png';
+import pingPongIcon from '../../assets/icons/ping-pong.png';
+import camaSaltarinaIcon from '../../assets/icons/cama-saltarina.png';
+import tacaTacaIcon from '../../assets/icons/tacataca.png';
+
+// Lista de servicios actualizada para usar los íconos importados
 const servicesList = [
   {
-    icon: '🏊', // O podrías usar '🌊'
+    icon: piscinaIcon,
     name: 'Piscina',
     description:
       'Disfruta de nuestra refrescante piscina, ideal para los días de sol y para relajarse en familia o con amigos.',
   },
   {
-    icon: '🎵',
+    icon: audioIcon,
     name: 'Sistema de Audio',
     description:
       'Equipo de música con conexión Bluetooth para ambientar tu evento.',
   },
   {
-    icon: '🚗',
+    icon: estacionamientoIcon,
     name: 'Estacionamiento',
     description:
       'Espacio de estacionamiento seguro y conveniente para ti y tus invitados.',
   },
   {
-    icon: '🔥',
+    icon: parrillaIcon,
     name: 'Parrilla',
     description:
       'Amplia parrilla con todos los implementos necesarios para un asado perfecto.',
   },
-
   {
-    icon: '🍞',
+    icon: hornoIcon,
     name: 'Horno',
     description: 'Disponible para tus preparaciones horneadas',
   },
   {
-    icon: '🎛️',
+    icon: cocinaIcon,
     name: 'Cocina',
     description:
       'Zona de preparación con lavaplatos y el espacio necesario para organizar cómodamente tus alimentos.',
   },
   {
-    icon: '🪑',
+    icon: mobiliarioIcon,
     name: 'Mobiliario Completo',
     description:
       'Mesas, sillas y cómodos sillones para tus invitados, tanto en interior como exterior.',
   },
   {
-    icon: '🍽️',
+    icon: vajillaIcon,
     name: 'Vajilla y Utensilios',
     description:
       'Set completo de platos, vasos, cubiertos y utensilios de cocina y parrilla.',
   },
   {
-    icon: '🧊',
+    icon: refrigeracionIcon,
     name: 'Refrigeración',
     description:
       'Refrigerador de gran capacidad y conservadora para mantener tus bebidas y alimentos frescos.',
   },
   {
-    icon: '🚽',
+    icon: banosIcon,
     name: 'Baños Equipados',
     description:
       'Baños limpios, modernos y completamente equipados para damas y varones.',
   },
   {
-    icon: '📶',
-    name: 'Conexión Wi-Fi',
-    description: 'Acceso a internet Wi-Fi.',
-  },
-  {
-    // NUEVO SERVICIO - MESA DE PING PONG
-    icon: '🏓',
+    icon: pingPongIcon,
     name: 'Mesa de Ping Pong',
     description:
       '¡Que la diversión no pare! Desafía a tus amigos y familia en nuestra mesa de ping pong, con paletas y pelotas incluidas.',
   },
   {
-    // NUEVO SERVICIO - CAMA SALTARINA
-    icon: '🤸', // O el icono que prefieras
+    icon: camaSaltarinaIcon,
     name: 'Cama Saltarina',
     description:
       '¡Energía y risas aseguradas para los más pequeños! Disfruten de nuestra cama saltarina amplia y segura.',
   },
-
-  // Añade más servicios según sea necesario
-  // {
-  //   icon: '🧹',
-  //   name: 'Servicio de Limpieza (Opcional)',
-  //   description: 'Consulta por nuestro servicio de limpieza post-evento para tu total comodidad.',
-  // },
+  {
+    icon: tacaTacaIcon,
+    name: 'Taca Taca',
+    description:
+      '¿Listos para la revancha? Arma los equipos y disfruta de entretenidos partidos en nuestro Taca Taca.',
+  },
 ];
 
 function Services() {
   return (
     <section id="services" className="py-16 md:py-24 bg-amber-50/30">
-      {' '}
-      {/* Un fondo ligeramente diferente */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
           <h2
@@ -113,12 +117,17 @@ function Services() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {servicesList.map((service) => (
+          {servicesList.map((service, index) => (
             <div
-              key={service.name}
+              key={`${service.name}-${index}`}
               className="bg-white font-hero-title p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center"
             >
-              <div className="text-5xl mb-4">{service.icon}</div>
+              {/* --- CAMBIO: Se usa una etiqueta <img> en lugar de un div --- */}
+              <img
+                src={service.icon}
+                alt={`Ícono de ${service.name}`}
+                className="w-16 h-16 mb-4" // Ajusta el tamaño según necesites
+              />
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 {service.name}
               </h3>
@@ -133,4 +142,4 @@ function Services() {
   );
 }
 
-export default Services;
+export default Services; 

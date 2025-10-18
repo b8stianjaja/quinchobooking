@@ -2,7 +2,7 @@
 import React from 'react';
 
 // --- IMPORTA SOLO EL ÍCONO DE TACA TACA ---
-import tacaTacaIcon from '../../assets/icons/taca-taca.png'; // Asegúrate que la ruta y nombre sean correctos
+import tacaTacaIcon from '../../assets/icons/tacataca.png'; // Asegúrate que la ruta y nombre sean correctos
 
 // Lista de servicios: emojis para la mayoría, imagen importada para Taca Taca
 const servicesList = [

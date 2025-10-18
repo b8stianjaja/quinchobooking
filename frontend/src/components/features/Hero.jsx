@@ -1,5 +1,5 @@
 import React from 'react';
-import heroBackgroundImage from '../../assets/images/quincho.jpg';
+import heroBackgroundImage from '../../assets/images/heroquincho.jpg';
 
 function Hero() {
   const heroStyle = {

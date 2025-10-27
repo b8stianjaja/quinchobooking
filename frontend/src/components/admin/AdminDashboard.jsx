@@ -49,7 +49,7 @@ const StatCard = ({ title, value, icon }) => (
 StatCard.propTypes = {
   title: PropTypes.string.isRequired,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  icon: PropTypes.node.isRequired,
+  icon: PropTypes.node, // Permitir null o JSX element
 };
 // ------------------------------------------
 
@@ -78,57 +78,44 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     setCurrentNotesTitle('');
   };
 
-  // --- fetchBookings ahora acepta ambos filtros ---
   const fetchBookings = useCallback(async (currentSearchTerm, currentStatusFilter) => {
-    // Solo intentar cargar si hay un usuario logueado
     if (!currentAdminUser) {
         setIsLoading(false);
         setBookings([]);
         return;
     }
-
     setIsLoading(true);
     try {
       const fetchedBookings = await getAllBookingsAdmin(currentSearchTerm, currentStatusFilter);
       setBookings(fetchedBookings || []);
     } catch (err) {
       toast.error(err.message || 'No se pudieron cargar las reservas.');
-       // Manejo mejorado del error de sesión/autorización
       if (err.message?.toLowerCase().includes('unauthorized') || err.message?.toLowerCase().includes('no active session')) {
         toast.error('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
-        if (onLogout) onLogout(navigate); // Llama a onLogout para desloguear
+        if (onLogout) onLogout(navigate);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [currentAdminUser, onLogout, navigate]); // Añadir currentAdminUser a las dependencias
-  // ---------------------------------------------
+  }, [currentAdminUser, onLogout, navigate]);
 
-   // --- useEffect para carga inicial y cambios de usuario ---
-  useEffect(() => {
-    // Si hay usuario, cargar todo al inicio. Si no, limpiar.
+   useEffect(() => {
     if (currentAdminUser) {
-      fetchBookings(searchTerm, statusFilter); // Usar filtros actuales en carga inicial si ya existen
+      fetchBookings(searchTerm, statusFilter);
     } else {
        setIsLoading(false);
        setBookings([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentAdminUser]); // Depende solo de currentAdminUser para la carga inicial/logout
-  // ----------------------------------------------------
+  }, [currentAdminUser]);
 
-  // --- useEffect para buscar/filtrar con debounce ---
   useEffect(() => {
-    if (!currentAdminUser) return; // No hacer nada si no hay usuario
-
+    if (!currentAdminUser) return;
     const debounceTimer = setTimeout(() => {
       fetchBookings(searchTerm, statusFilter);
-    }, 500); // Espera 500ms
-
+    }, 500);
     return () => clearTimeout(debounceTimer);
-     // Depende de searchTerm Y statusFilter
   }, [searchTerm, statusFilter, currentAdminUser, fetchBookings]);
-  // -----------------------------------------------
 
 
   const handleStatusChange = (bookingId, newStatus) => {
@@ -145,7 +132,6 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
       loading: 'Actualizando estado...',
       success: (data) => {
          if (data.success) {
-            // Refrescar usando los filtros actuales
             fetchBookings(searchTerm, statusFilter);
             return `Reserva actualizada con éxito.`;
          } else {
@@ -153,7 +139,6 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
          }
       },
       error: (err) => {
-          // Si el error es de conflicto (409), mostrar mensaje específico
           if (err.message.includes('Ya existe otra reserva confirmada')) {
               return `Error: ${err.message}`;
           }
@@ -180,7 +165,6 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
       loading: 'Eliminando reserva...',
       success: (data) => {
         if (data.success) {
-            // Refrescar usando los filtros actuales
             fetchBookings(searchTerm, statusFilter);
             return `Reserva eliminada con éxito.`;
         } else {
@@ -192,11 +176,8 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
   };
 
 
-  // Stats calculados sobre los 'bookings' ya filtrados por el backend
   const stats = useMemo(
     () => ({
-      // Podríamos necesitar una llamada separada para el total real si quisiéramos mostrarlo
-      // independientemente del filtro actual. Por ahora, muestra el total de la vista actual.
       total: bookings.length,
       pending: bookings.filter((b) => b.status === 'pending').length,
       confirmed: bookings.filter((b) => b.status === 'confirmed').length,
@@ -210,7 +191,6 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     return text.substring(0, maxLength) + '...';
   };
 
-  // Helper para clases de botones de filtro
   const getFilterButtonClasses = (filterValue) => {
     const base = "px-4 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50";
     if (statusFilter === filterValue) {
@@ -246,11 +226,68 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
       </header>
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Sección de Estadísticas */}
+        {/* Sección de Estadísticas (Con SVGs corregidos) */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <StatCard title="Total (Vista Actual)" value={stats.total} icon={/* Icono Total */} />
-          <StatCard title="Pendientes (Vista Actual)" value={stats.pending} icon={/* Icono Pendiente */} />
-          <StatCard title="Confirmadas (Vista Actual)" value={stats.confirmed} icon={/* Icono Confirmado */} />
+          <StatCard
+            title="Total (Vista Actual)"
+            value={stats.total}
+            icon={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-orange-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            }
+          />
+          <StatCard
+            title="Pendientes (Vista Actual)"
+            value={stats.pending}
+            icon={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-yellow-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            }
+          />
+          <StatCard
+            title="Confirmadas (Vista Actual)"
+            value={stats.confirmed}
+            icon={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            }
+          />
         </section>
 
         {/* Tabla de Gestión de Reservas */}
@@ -292,7 +329,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                      {searchTerm || statusFilter !== 'all' ? 'No se encontraron reservas para los filtros aplicados.' : 'No hay reservas registradas.'}
                   </td> </tr>
                 ) : (
-                  bookings.map((booking) => ( // Usar 'bookings' directamente
+                  bookings.map((booking) => (
                     <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
                       {/* Celdas de datos ... */}
                        <td className="px-6 py-4 whitespace-nowrap"> <div className="text-sm font-semibold text-gray-900">{booking.name || '-'}</div></td>
@@ -307,10 +344,9 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                       <td className="px-6 py-4 whitespace-nowrap"> <div className="text-sm text-gray-600 text-center">{booking.guest_count || '-'}</div></td>
                       <td className="px-6 py-4 max-w-xs"> {/* Notas con Modal */}
                         <div className="flex items-center space-x-2">
-                           {/* Icono indicador si hay notas */}
                            {booking.notes && <span className="text-gray-400" title="Esta reserva tiene notas">💬</span>}
                            <span className="text-sm text-gray-600 flex-grow overflow-hidden whitespace-nowrap overflow-ellipsis">
-                              {truncateText(booking.notes, 40)} {/* Acortar un poco más */}
+                              {truncateText(booking.notes, 40)}
                            </span>
                            {booking.notes && booking.notes.length > 40 && (
                              <button onClick={() => openNotesModal(booking.notes, booking.name)} className="text-orange-600 hover:text-orange-800 text-xs font-medium p-1 rounded hover:bg-orange-50 flex-shrink-0" aria-label="Ver notas completas"> Ver más </button>

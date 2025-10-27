@@ -2,13 +2,13 @@
 export const galleryData = [
   {
     id: 1,
-    src: '/images/quincho-gallery/quincho.jpg', // Ruta desde la raíz del sitio
+    src: '/images/quinchogallery/quincho.jpg', // Ruta desde la raíz del sitio
     alt: 'Vista al Quincho',
     description: 'Amplia vista del espacio principal del quincho.',
   },
   {
     id: 2,
-    src: '/images/quincho-gallery/quincho2.jpg',
+    src: '/images/quinchogallery/parrilla.jpg',
     alt: 'Zona de parrilla equipada',
     description: 'Parrilla lista para el asado.',
   },

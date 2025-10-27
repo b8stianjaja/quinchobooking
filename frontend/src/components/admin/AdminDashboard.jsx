@@ -1,7 +1,7 @@
 // In frontend/src/components/admin/AdminDashboard.jsx
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PropTypes from 'prop-types'; // Import PropTypes
+import PropTypes from 'prop-types';
 import toast from 'react-hot-toast';
 
 import {
@@ -70,12 +70,12 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     } catch (err) {
       toast.error(err.message || 'No se pudieron cargar las reservas.');
       if (err.message?.toLowerCase().includes('unauthorized')) {
-        if (onLogout) onLogout(); // Se llama a onLogout si hay error de autorización
+        if (onLogout) onLogout();
       }
     } finally {
       setIsLoading(false);
     }
-  }, [onLogout]); // onLogout se añade como dependencia
+  }, [onLogout]);
 
   useEffect(() => {
     if (currentAdminUser) {
@@ -97,16 +97,14 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
       loading: 'Actualizando estado...',
       success: (data) => {
          if (data.success) {
-            fetchBookings(); // Refreshes the data on success
+            fetchBookings();
             return `Reserva actualizada con éxito.`;
          } else {
-             // Si el backend devuelve success: false
              throw new Error(data.message || 'No se pudo actualizar la reserva.');
          }
       },
       error: (err) => `Error: ${err.message}`,
     });
-    // Limpiar el estado de edición para esta reserva después de intentar actualizar
     setEditStatus((prev) => {
       const newState = { ...prev };
       delete newState[bookingId];
@@ -127,7 +125,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
       loading: 'Eliminando reserva...',
       success: (data) => {
         if (data.success) {
-            fetchBookings(); // Refreshes the data on success
+            fetchBookings();
             return `Reserva eliminada con éxito.`;
         } else {
             throw new Error(data.message || 'No se pudo eliminar la reserva.');
@@ -137,14 +135,13 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     });
   };
 
-  // Actualizar filtro para buscar solo por nombre o teléfono
   const filteredBookings = useMemo(
     () =>
       bookings.filter(
         (booking) =>
           (booking.name &&
             booking.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (booking.phone && // Añadir búsqueda por teléfono
+          (booking.phone &&
             booking.phone.toLowerCase().includes(searchTerm.toLowerCase()))
       ),
     [bookings, searchTerm]
@@ -175,7 +172,6 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
             </p>
           </div>
           <button
-             // Pasamos navigate a onLogout si es necesario
             onClick={() => onLogout(navigate)}
             className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 font-semibold transition-colors duration-200"
           >
@@ -282,7 +278,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
               </div>
               <input
                 type="text"
-                placeholder="Buscar por nombre o teléfono..." // Actualizar placeholder
+                placeholder="Buscar por nombre o teléfono..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="block w-full rounded-md border-gray-300 py-2 pl-10 pr-3 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
@@ -293,13 +289,12 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {/* --- MODIFICADO: Añadir 'Notas' --- */}
                   {[
                     'Cliente',
                     'Teléfono',
                     'Detalles del Evento',
                     'Invitados',
-                    'Notas', // <--- Añadido aquí
+                    'Notas', // Columna añadida
                     'Estado',
                     'Acciones',
                   ].map((header) => (
@@ -316,9 +311,8 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
               <tbody className="bg-white divide-y divide-gray-200">
                 {isLoading ? (
                   <tr>
-                    {/* --- MODIFICADO: Ajustar colSpan --- */}
                     <td
-                      colSpan="7" // <--- Cambiado de 6 a 7
+                      colSpan="7" // Ajustado a 7
                       className="text-center p-8 text-gray-500"
                     >
                       Cargando reservas...
@@ -326,9 +320,8 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                   </tr>
                 ) : filteredBookings.length === 0 ? (
                   <tr>
-                    {/* --- MODIFICADO: Ajustar colSpan --- */}
                     <td
-                      colSpan="7" // <--- Cambiado de 6 a 7
+                      colSpan="7" // Ajustado a 7
                       className="text-center p-8 text-gray-500"
                     >
                       No se encontraron reservas.
@@ -372,10 +365,10 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                           {booking.guest_count || '-'}
                         </div>
                       </td>
-                      {/* --- MODIFICADO: Añadir celda para Notas --- */}
-                      <td className="px-6 py-4 max-w-xs"> {/* Limitamos ancho */}
-                        <div className="text-sm text-gray-600 truncate" title={booking.notes || ''}> {/* Truncamos texto largo, mostramos completo en tooltip */}
-                          {booking.notes || '-'} {/* Mostramos '-' si no hay notas */}
+                      {/* --- Celda de Notas (con text wrapping) --- */}
+                      <td className="px-6 py-4 max-w-xs"> {/* Mantenemos el ancho máximo */}
+                        <div className="text-sm text-gray-600 whitespace-normal"> {/* Permite el ajuste de texto */}
+                          {booking.notes || '-'}
                         </div>
                       </td>
                       {/* ------------------------------------------- */}

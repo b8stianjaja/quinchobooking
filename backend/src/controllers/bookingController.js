@@ -21,7 +21,7 @@ const getAvailability = async (req, res, next) => {
 const submitBookingRequest = async (req, res, next) => {
     try {
         let { booking_date, slot_type, name, phone, guest_count, notes } = req.body;
-        const NOTES_MAX_LENGTH = 333; // --- Límite cambiado a 333 ---
+        const NOTES_MAX_LENGTH = 333; // Límite establecido a 333
 
         // Validaciones básicas
         if (!name || !phone || !booking_date || !slot_type) {
@@ -35,14 +35,14 @@ const submitBookingRequest = async (req, res, next) => {
         phone = validator.escape(phone.trim());
         notes = notes ? validator.escape(notes.trim()) : '';
 
-        // --- Validación de Longitud de Notas (actualizada) ---
+        // --- Validación de Longitud de Notas (actualizada a 333) ---
         if (notes.length > NOTES_MAX_LENGTH) {
             return res.status(400).json({
                 success: false,
                 message: `Las notas adicionales no pueden exceder los ${NOTES_MAX_LENGTH} caracteres.`
             });
         }
-        // ---------------------------------------------------
+        // --------------------------------------------------------
 
         const existingBookingQuery = `
             SELECT id FROM bookings
@@ -64,14 +64,13 @@ const submitBookingRequest = async (req, res, next) => {
         res.status(201).json({ success: true, message: 'Booking request submitted successfully.', booking });
 
     } catch (error) {
-        if (error.code === '23502') {
+        if (error.code === '23502') { // Error de columna NOT NULL
              return res.status(400).json({ success: false, message: 'El campo Teléfono es obligatorio.' });
         }
-        next(error);
+        next(error); // Pasa otros errores al manejador global
     }
 };
 
-// --- Resto de los controladores (adminLoginController, etc.) sin cambios ---
 const adminLoginController = async (req, res, next) => {
     try {
         const username = validator.escape(req.body.username.trim());

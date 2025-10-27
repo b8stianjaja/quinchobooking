@@ -19,6 +19,7 @@ function BookingForm({
     guests: '',
     notes: '',
   });
+  const NOTES_MAX_LENGTH = 333; // Límite de caracteres
 
   const formattedDateForDisplay = selectedDate
     ? new Date(selectedDate).toLocaleDateString('es-ES', {
@@ -30,6 +31,7 @@ function BookingForm({
     : 'Ninguna fecha seleccionada';
 
   useEffect(() => {
+    // Resetea el estado inicial sin el campo 'email'
     setFormDataState({ name: '', phone: '', guests: '', notes: '' });
     setFormStatus({ message: '', type: '' });
   }, [selectedDate, selectedSlot]);
@@ -37,11 +39,16 @@ function BookingForm({
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     // Asegurarse de no exceder el límite para el textarea de notas
-    if (name === 'notes' && value.length > 333) {
-      return; // No actualizar el estado si se excede
+    if (name === 'notes' && value.length > NOTES_MAX_LENGTH) {
+       // Opcional: Podrías truncar el valor aquí si prefieres,
+       // pero `maxLength` en el textarea ya previene escribir más.
+       // Esto asegura que si pegan texto, no exceda.
+       setFormDataState((prev) => ({ ...prev, [name]: value.substring(0, NOTES_MAX_LENGTH) }));
+       return;
     }
     setFormDataState((prev) => ({ ...prev, [name]: value }));
   };
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -58,6 +65,7 @@ function BookingForm({
     const day = String(selectedDate.getDate()).padStart(2, '0');
     const bookingDateString = `${year}-${month}-${day}`;
 
+    // Payload sin 'email'
     const bookingPayload = {
       booking_date: bookingDateString,
       slot_type: selectedSlot,
@@ -66,7 +74,7 @@ function BookingForm({
       guest_count: formDataState.guests
         ? parseInt(formDataState.guests, 10)
         : null,
-      notes: formDataState.notes,
+      notes: formDataState.notes, // Ya limitado por handleInputChange y maxLength
     };
 
     try {
@@ -78,6 +86,7 @@ function BookingForm({
             'Tu solicitud ha sido enviada con éxito. Te contactaremos pronto para confirmar. ¡Gracias!',
           type: 'success',
         });
+        // Resetea el estado sin 'email'
         setFormDataState({ name: '', phone: '', guests: '', notes: '' });
         if (onBookingSuccess) onBookingSuccess();
       } else {
@@ -101,6 +110,15 @@ function BookingForm({
     'bg-white hover:bg-orange-50 border-gray-300 text-gray-800 hover:border-orange-300';
   const slotButtonDisabledClasses =
     'bg-gray-100 text-gray-400 border-gray-200 line-through cursor-not-allowed';
+
+  // --- Determinar color del contador ---
+  const notesLength = formDataState.notes.length;
+  const counterColor = notesLength >= NOTES_MAX_LENGTH
+    ? 'text-red-600 font-semibold' // Rojo y negrita al límite
+    : notesLength > NOTES_MAX_LENGTH - 50
+    ? 'text-orange-600' // Naranja cuando se acerca
+    : 'text-gray-500'; // Normal
+  // ------------------------------------
 
   return formStatus.type === 'success' ? (
     <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-xl text-center min-h-[400px] flex flex-col justify-center items-center">
@@ -198,12 +216,13 @@ function BookingForm({
             placeholder="Ej: Juan Pérez"
           />
         </div>
+        {/* Campo de Email Eliminado */}
         <div>
           <label
             htmlFor="phone"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Teléfono<span className="text-red-500 ml-0.5">*</span>
+            Teléfono<span className="text-red-500 ml-0.5">*</span> {/* Hacerlo requerido */}
           </label>
           <input
             type="tel"
@@ -230,7 +249,7 @@ function BookingForm({
             value={formDataState.guests}
             onChange={handleInputChange}
             min="1"
-            max="50"
+            max="50" // Puedes ajustar el máximo si es necesario
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400 disabled:bg-gray-100"
             placeholder="Ej: 25"
           />
@@ -248,13 +267,13 @@ function BookingForm({
             value={formDataState.notes}
             onChange={handleInputChange}
             rows="3"
-            maxLength="333" // --- Límite cambiado a 333 ---
+            maxLength={NOTES_MAX_LENGTH} // Límite aplicado
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400 disabled:bg-gray-100"
-            placeholder="Ej: Necesitaremos espacio extra..."
+            placeholder="Ej: ¿Alergias? ¿Necesitas algo especial? ¿Motivo (cumpleaños, etc.)?" // Placeholder mejorado
           ></textarea>
-          {/* Contador de caracteres actualizado */}
-          <p className="text-xs text-gray-500 text-right mt-1">
-            {formDataState.notes.length} / 333 caracteres
+          {/* Contador con color dinámico */}
+          <p className={`text-xs ${counterColor} text-right mt-1 transition-colors`}>
+            {notesLength} / {NOTES_MAX_LENGTH} caracteres
           </p>
         </div>
       </fieldset>

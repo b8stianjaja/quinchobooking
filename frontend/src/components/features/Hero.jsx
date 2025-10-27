@@ -9,7 +9,7 @@ function Hero() {
   const [activeImageIndex, setActiveImageIndex] = useState(0); // Empezar con la imagen de día
 
   const images = [heroImageDay, heroImageNight];
-  const transitionDuration = 1000; // Duración del fade en ms
+  const transitionDuration = 3000; // Duración del fade en ms (3 segundos) <-- MODIFICADO AQUÍ
   const intervalDuration = 8000; // Tiempo que cada imagen es visible en ms
 
   // Efecto para cambiar la imagen cada cierto tiempo
@@ -35,30 +35,20 @@ function Hero() {
     <section
       id="hero"
       className="min-h-screen flex items-center justify-center text-white relative overflow-hidden" // Añadir overflow-hidden
-      // Ya no se necesita el estilo de fondo aquí
     >
       {/* Contenedor para las imágenes de fondo */}
       <div className="absolute inset-0 z-0">
         {images.map((image, index) => (
           <div
             key={index}
-            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-${transitionDuration} ease-in-out`}
-            style={{ backgroundImage: `url(${image})` }}
-            // Controlar opacidad basado en el índice activo
-            // opacity-100 si es la activa, opacity-0 si no
-            // pointer-events-none para asegurar que no interfieran con clics
-            // z-index negativo para estar detrás del overlay
-            {...{
-              className: `absolute inset-0 bg-cover bg-center transition-opacity ease-in-out pointer-events-none -z-10 ${
-                activeImageIndex === index ? 'opacity-100' : 'opacity-0'
-              }`,
-              // ¡Importante! Tailwind necesita la clase completa para `duration`,
-              // por lo que si quieres duración variable, usa style o define clases específicas en tailwind.config.js
-              // Para 1000ms, podemos usar 'duration-1000' que es una clase común.
-              style: {
-                backgroundImage: `url(${image})`,
-                transitionDuration: `${transitionDuration}ms`, // Aplicar duración vía style
-              },
+            // Clases de Tailwind para posicionamiento, tamaño y transición base
+            className={`absolute inset-0 bg-cover bg-center transition-opacity ease-in-out pointer-events-none -z-10 ${
+              activeImageIndex === index ? 'opacity-100' : 'opacity-0'
+            }`}
+            // Estilo en línea para la imagen de fondo y la duración específica
+            style={{
+              backgroundImage: `url(${image})`,
+              transitionDuration: `${transitionDuration}ms`, // Aplica la duración de 3000ms
             }}
           />
         ))}
@@ -86,7 +76,7 @@ function Hero() {
           className="inline-flex items-center justify-center bg-[#DD6B20] hover:bg-orange-400 text-white font-hero-title font-semibold py-3 px-8 rounded-lg text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50"
         >
           Ver Disponibilidad y Reservar
-          <svg //
+          <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-5 w-5 ml-2"
             viewBox="0 0 20 20"

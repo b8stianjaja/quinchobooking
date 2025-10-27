@@ -294,7 +294,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                     'Teléfono',
                     'Detalles del Evento',
                     'Invitados',
-                    'Notas', // Columna añadida
+                    'Notas',
                     'Estado',
                     'Acciones',
                   ].map((header) => (
@@ -312,7 +312,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                 {isLoading ? (
                   <tr>
                     <td
-                      colSpan="7" // Ajustado a 7
+                      colSpan="7"
                       className="text-center p-8 text-gray-500"
                     >
                       Cargando reservas...
@@ -321,7 +321,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                 ) : filteredBookings.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="7" // Ajustado a 7
+                      colSpan="7"
                       className="text-center p-8 text-gray-500"
                     >
                       No se encontraron reservas.
@@ -365,13 +365,13 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                           {booking.guest_count || '-'}
                         </div>
                       </td>
-                      {/* --- Celda de Notas (con text wrapping) --- */}
-                      <td className="px-6 py-4 max-w-xs"> {/* Mantenemos el ancho máximo */}
-                        <div className="text-sm text-gray-600 whitespace-normal"> {/* Permite el ajuste de texto */}
+                      {/* --- Celda de Notas (con text wrapping y word break) --- */}
+                      <td className="px-6 py-4 max-w-xs">
+                        <div className="text-sm text-gray-600 whitespace-normal break-words"> {/* Añadido break-words */}
                           {booking.notes || '-'}
                         </div>
                       </td>
-                      {/* ------------------------------------------- */}
+                      {/* --------------------------------------------------- */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge status={booking.status} />
                       </td>

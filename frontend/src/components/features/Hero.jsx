@@ -9,7 +9,7 @@ function Hero() {
   const [activeImageIndex, setActiveImageIndex] = useState(0); // Empezar con la imagen de día
 
   const images = [heroImageDay, heroImageNight];
-  const transitionDuration = 3000; // Duración del fade en ms (3 segundos) <-- MODIFICADO AQUÍ
+  const transitionDuration = 3000; // Duración del fade en ms (3 segundos)
   const intervalDuration = 8000; // Tiempo que cada imagen es visible en ms
 
   // Efecto para cambiar la imagen cada cierto tiempo
@@ -41,8 +41,8 @@ function Hero() {
         {images.map((image, index) => (
           <div
             key={index}
-            // Clases de Tailwind para posicionamiento, tamaño y transición base
-            className={`absolute inset-0 bg-cover bg-center transition-opacity ease-in-out pointer-events-none -z-10 ${
+            // Clases de Tailwind para posicionamiento, tamaño y transición base (ease-out)
+            className={`absolute inset-0 bg-cover bg-center transition-opacity ease-out pointer-events-none -z-10 ${ // <-- Easing changed here
               activeImageIndex === index ? 'opacity-100' : 'opacity-0'
             }`}
             // Estilo en línea para la imagen de fondo y la duración específica

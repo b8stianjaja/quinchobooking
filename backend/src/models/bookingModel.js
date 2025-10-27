@@ -1,5 +1,4 @@
 // backend/src/models/bookingModel.js
-
 const { pool } = require('../config/db');
 
 const createBooking = async (bookingData) => {
@@ -31,11 +30,42 @@ const createBooking = async (bookingData) => {
   }
 };
 
-const getAllBookings = async () => {
-  // Selecciona todas las columnas existentes, incluyendo guest_count
-  const { rows } = await pool.query('SELECT * FROM bookings ORDER BY created_at DESC');
-  return rows;
+
+// --- getAllBookings Modificado para incluir filtros ---
+const getAllBookings = async (searchTerm = '', statusFilter = 'all') => {
+  let query = 'SELECT * FROM bookings';
+  const values = [];
+  let conditions = []; // Para almacenar las condiciones WHERE
+
+  // Condición para searchTerm
+  if (searchTerm && searchTerm.trim() !== '') {
+    // Usamos ILIKE para búsqueda insensible a mayúsculas/minúsculas y '%' para coincidencias parciales
+    conditions.push(`(name ILIKE $${values.length + 1} OR phone ILIKE $${values.length + 1} OR notes ILIKE $${values.length + 1})`);
+    values.push(`%${searchTerm.trim()}%`); // Añadir comodines al valor
+  }
+
+  // Condición para statusFilter (ignorar si es 'all')
+  if (statusFilter && statusFilter !== 'all' && ['pending', 'confirmed', 'cancelled'].includes(statusFilter)) {
+    conditions.push(`status = $${values.length + 1}`);
+    values.push(statusFilter);
+  }
+
+  // Unir condiciones con AND si hay más de una
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+
+  query += ' ORDER BY created_at DESC'; // Mantener el orden
+
+  try {
+    const { rows } = await pool.query(query, values);
+    return rows;
+  } catch(error) {
+      console.error("Error fetching bookings in model:", error);
+      throw error; // Re-lanzar para que el controlador lo maneje
+  }
 };
+// --------------------------------------------------
 
 const updateBookingStatus = async (id, status) => {
     try {

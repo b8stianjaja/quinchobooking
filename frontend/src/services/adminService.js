@@ -1,14 +1,13 @@
 // frontend/src/services/adminService.js
 
-// La URL base ahora apunta a la ruta relativa /api en el mismo dominio.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const API_URL = `${API_BASE_URL}/api`;
 
-// Use a credentials helper to handle cookies
+// Helper para incluir credenciales (cookies) en las peticiones
 const fetchWithCredentials = async (url, options = {}) => {
   return fetch(url, {
     ...options,
-    credentials: 'include', // This is crucial for sending session cookies
+    credentials: 'include', // Crucial para enviar cookies de sesión
   });
 };
 
@@ -23,12 +22,28 @@ export const loginAdmin = async (credentials) => {
   return data;
 };
 
-export const getAllBookingsAdmin = async () => {
-  const response = await fetchWithCredentials(`${API_URL}/admin/bookings`);
+// --- getAllBookingsAdmin Modificado para incluir filtros ---
+export const getAllBookingsAdmin = async (searchTerm = '', statusFilter = 'all') => {
+  // Construir los query parameters
+  const params = new URLSearchParams();
+  if (searchTerm && searchTerm.trim() !== '') {
+    params.append('search', searchTerm.trim());
+  }
+  // Añadir el filtro de estado solo si no es 'all'
+  if (statusFilter && statusFilter !== 'all') {
+    params.append('status', statusFilter);
+  }
+
+  const queryString = params.toString();
+  // Añadir el query string a la URL solo si contiene parámetros
+  const url = `${API_URL}/admin/bookings${queryString ? `?${queryString}` : ''}`;
+
+  const response = await fetchWithCredentials(url); // Usar la URL construida
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || 'Failed to fetch bookings');
   return data;
 };
+// ----------------------------------------------------
 
 export const updateBookingStatusAdmin = async (id, status) => {
   const response = await fetchWithCredentials(
@@ -59,9 +74,16 @@ export const deleteBookingAdmin = async (id) => {
 export const checkSession = async () => {
   const response = await fetchWithCredentials(`${API_URL}/admin/session`);
   const data = await response.json();
-  if (!response.ok) throw new Error(data.message || 'Failed to check session');
+  if (!response.ok) {
+      // Manejar el caso específico de 'No active session' sin lanzar error necesariamente
+      if(response.status === 401 && data.message === 'No active session.') {
+          return data; // Devuelve el { success: false, ... } esperado
+      }
+      throw new Error(data.message || 'Failed to check session');
+  }
   return data;
 };
+
 
 export const logout = async () => {
   const response = await fetchWithCredentials(`${API_URL}/admin/logout`, {

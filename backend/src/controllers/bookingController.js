@@ -43,13 +43,11 @@ const submitBookingRequest = async (req, res, next) => {
             });
         }
 
-        // --- MODIFICACIÓN CLAVE ---
-        // Ahora solo buscamos reservas CONFIRMADAS para bloquear una nueva solicitud.
+        // Busca reservas CONFIRMADAS para bloquear una nueva solicitud.
         const existingBookingQuery = `
             SELECT id FROM bookings
             WHERE booking_date = $1 AND slot_type = $2 AND status = 'confirmed'
         `;
-        // -------------------------
 
         const { rows } = await pool.query(existingBookingQuery, [booking_date, slot_type]);
 
@@ -69,9 +67,7 @@ const submitBookingRequest = async (req, res, next) => {
         res.status(201).json({ success: true, message: 'Booking request submitted successfully.', booking });
 
     } catch (error) {
-         // El error de base de datos por duplicado (23505) ya no debería ocurrir para pendientes
-         // gracias a la nueva migración, pero lo dejamos por si acaso.
-        if (error.code === '23505') { // unique_violation
+        if (error.code === '23505') { // unique_violation (debería venir del índice unique_confirmed_booking_idx)
              return res.status(409).json({
                 success: false,
                 message: 'Error: La base de datos impidió crear una reserva duplicada confirmada.'
@@ -84,7 +80,7 @@ const submitBookingRequest = async (req, res, next) => {
     }
 };
 
-// --- Resto de los controladores sin cambios ---
+
 const adminLoginController = async (req, res, next) => {
     try {
         const username = validator.escape(req.body.username.trim());
@@ -129,15 +125,20 @@ const checkAdminSessionController = (req, res) => {
     }
 };
 
+// --- getAllBookingsAdminController Modificado para incluir filtros ---
 const getAllBookingsAdminController = async (req, res, next) => {
     try {
         const searchTerm = req.query.search || '';
-        const bookings = await bookingModel.getAllBookings(searchTerm);
+        const statusFilter = req.query.status || 'all'; // Leer filtro de estado (default 'all')
+
+        // Pasar ambos filtros al modelo
+        const bookings = await bookingModel.getAllBookings(searchTerm, statusFilter);
         res.json(bookings);
     } catch (error) {
         next(error);
     }
 };
+// -----------------------------------------------------------------
 
 const updateBookingStatusAdminController = async (req, res, next) => {
     try {
@@ -152,14 +153,13 @@ const updateBookingStatusAdminController = async (req, res, next) => {
         }
         res.json({ success: true, message: 'Booking status updated.', booking: updatedBooking });
     } catch (error) {
-        // --- Manejo Específico para Violación de Unicidad al Confirmar ---
-        if (error.code === '23505' && status === 'confirmed') { // unique_violation
+        // Manejo Específico para Violación de Unicidad al Confirmar
+        if (error.code === '23505' && status === 'confirmed' && error.constraint === 'unique_confirmed_booking_idx') { // unique_violation
             return res.status(409).json({
                 success: false,
                 message: 'Error: Ya existe otra reserva confirmada para esta fecha y horario. No se puede confirmar esta.'
             });
         }
-        // -----------------------------------------------------------------
         next(error);
     }
 };

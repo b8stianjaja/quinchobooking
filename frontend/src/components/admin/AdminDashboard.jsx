@@ -293,12 +293,13 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {/* Actualizar headers de la tabla */}
+                  {/* --- MODIFICADO: Añadir 'Notas' --- */}
                   {[
                     'Cliente',
-                    'Teléfono', // Cambiado
+                    'Teléfono',
                     'Detalles del Evento',
-                    'Invitados', // Añadido
+                    'Invitados',
+                    'Notas', // <--- Añadido aquí
                     'Estado',
                     'Acciones',
                   ].map((header) => (
@@ -315,9 +316,9 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
               <tbody className="bg-white divide-y divide-gray-200">
                 {isLoading ? (
                   <tr>
-                    {/* Ajustar colSpan */}
+                    {/* --- MODIFICADO: Ajustar colSpan --- */}
                     <td
-                      colSpan="6"
+                      colSpan="7" // <--- Cambiado de 6 a 7
                       className="text-center p-8 text-gray-500"
                     >
                       Cargando reservas...
@@ -325,9 +326,9 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                   </tr>
                 ) : filteredBookings.length === 0 ? (
                   <tr>
-                    {/* Ajustar colSpan */}
+                    {/* --- MODIFICADO: Ajustar colSpan --- */}
                     <td
-                      colSpan="6"
+                      colSpan="7" // <--- Cambiado de 6 a 7
                       className="text-center p-8 text-gray-500"
                     >
                       No se encontraron reservas.
@@ -344,7 +345,6 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                           {booking.name || '-'}
                         </div>
                       </td>
-                      {/* Mostrar Teléfono */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-600">
                           {booking.phone || '-'}
@@ -358,7 +358,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric',
-                              timeZone: 'UTC', // Asegurar consistencia de fecha
+                              timeZone: 'UTC',
                             }
                           )}
                           <br />
@@ -367,12 +367,18 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                           </span>
                         </div>
                       </td>
-                      {/* Mostrar Invitados */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-600 text-center">
                           {booking.guest_count || '-'}
                         </div>
                       </td>
+                      {/* --- MODIFICADO: Añadir celda para Notas --- */}
+                      <td className="px-6 py-4 max-w-xs"> {/* Limitamos ancho */}
+                        <div className="text-sm text-gray-600 truncate" title={booking.notes || ''}> {/* Truncamos texto largo, mostramos completo en tooltip */}
+                          {booking.notes || '-'} {/* Mostramos '-' si no hay notas */}
+                        </div>
+                      </td>
+                      {/* ------------------------------------------- */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge status={booking.status} />
                       </td>
@@ -383,7 +389,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                             onChange={(e) =>
                               handleStatusChange(booking.id, e.target.value)
                             }
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-xs py-1.5 px-2" // Ajustar padding si es necesario
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-xs py-1.5 px-2"
                           >
                             <option value="pending">Pendiente</option>
                             <option value="confirmed">Confirmada</option>
@@ -445,9 +451,9 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
 
 AdminDashboard.propTypes = {
   currentAdminUser: PropTypes.shape({
-    id: PropTypes.number, // O el tipo de dato que sea el ID
+    id: PropTypes.number,
     username: PropTypes.string,
-  }), // Puede ser null si no hay sesión
+  }),
   onLogout: PropTypes.func.isRequired,
 };
 

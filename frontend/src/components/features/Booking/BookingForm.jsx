@@ -13,7 +13,6 @@ function BookingForm({
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formStatus, setFormStatus] = useState({ message: '', type: '' });
-  // Estado inicial sin el campo 'email'
   const [formDataState, setFormDataState] = useState({
     name: '',
     phone: '',
@@ -31,13 +30,16 @@ function BookingForm({
     : 'Ninguna fecha seleccionada';
 
   useEffect(() => {
-    // Resetea el estado sin 'email'
     setFormDataState({ name: '', phone: '', guests: '', notes: '' });
     setFormStatus({ message: '', type: '' });
   }, [selectedDate, selectedSlot]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
+    // Asegurarse de no exceder el límite para el textarea de notas
+    if (name === 'notes' && value.length > 333) {
+      return; // No actualizar el estado si se excede
+    }
     setFormDataState((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -56,7 +58,6 @@ function BookingForm({
     const day = String(selectedDate.getDate()).padStart(2, '0');
     const bookingDateString = `${year}-${month}-${day}`;
 
-    // Payload sin 'email'
     const bookingPayload = {
       booking_date: bookingDateString,
       slot_type: selectedSlot,
@@ -77,7 +78,6 @@ function BookingForm({
             'Tu solicitud ha sido enviada con éxito. Te contactaremos pronto para confirmar. ¡Gracias!',
           type: 'success',
         });
-        // Resetea el estado sin 'email'
         setFormDataState({ name: '', phone: '', guests: '', notes: '' });
         if (onBookingSuccess) onBookingSuccess();
       } else {
@@ -198,13 +198,12 @@ function BookingForm({
             placeholder="Ej: Juan Pérez"
           />
         </div>
-        {/* Campo de Email Eliminado */}
         <div>
           <label
             htmlFor="phone"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Teléfono<span className="text-red-500 ml-0.5">*</span> {/* Hacerlo requerido */}
+            Teléfono<span className="text-red-500 ml-0.5">*</span>
           </label>
           <input
             type="tel"
@@ -212,7 +211,7 @@ function BookingForm({
             name="phone"
             value={formDataState.phone}
             onChange={handleInputChange}
-            required 
+            required
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400 disabled:bg-gray-100"
             placeholder="Ej: +56 9 1234 5678"
           />
@@ -231,7 +230,7 @@ function BookingForm({
             value={formDataState.guests}
             onChange={handleInputChange}
             min="1"
-            max="50" // Puedes ajustar el máximo si es necesario
+            max="50"
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400 disabled:bg-gray-100"
             placeholder="Ej: 25"
           />
@@ -249,9 +248,14 @@ function BookingForm({
             value={formDataState.notes}
             onChange={handleInputChange}
             rows="3"
+            maxLength="333" // --- Límite cambiado a 333 ---
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 placeholder:text-gray-400 disabled:bg-gray-100"
             placeholder="Ej: Necesitaremos espacio extra..."
           ></textarea>
+          {/* Contador de caracteres actualizado */}
+          <p className="text-xs text-gray-500 text-right mt-1">
+            {formDataState.notes.length} / 333 caracteres
+          </p>
         </div>
       </fieldset>
 

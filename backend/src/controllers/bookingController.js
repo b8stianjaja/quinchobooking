@@ -20,10 +20,10 @@ const getAvailability = async (req, res, next) => {
 
 const submitBookingRequest = async (req, res, next) => {
     try {
-        // Se elimina 'email' de la destructuración
         let { booking_date, slot_type, name, phone, guest_count, notes } = req.body;
+        const NOTES_MAX_LENGTH = 333; // --- Límite cambiado a 333 ---
 
-        // Validaciones básicas (puedes añadir más si necesitas)
+        // Validaciones básicas
         if (!name || !phone || !booking_date || !slot_type) {
              return res.status(400).json({
                 success: false,
@@ -32,9 +32,17 @@ const submitBookingRequest = async (req, res, next) => {
         }
 
         name = validator.escape(name.trim());
-        // Se elimina la normalización de 'email'
-        phone = validator.escape(phone.trim()); // Teléfono ahora es requerido
+        phone = validator.escape(phone.trim());
         notes = notes ? validator.escape(notes.trim()) : '';
+
+        // --- Validación de Longitud de Notas (actualizada) ---
+        if (notes.length > NOTES_MAX_LENGTH) {
+            return res.status(400).json({
+                success: false,
+                message: `Las notas adicionales no pueden exceder los ${NOTES_MAX_LENGTH} caracteres.`
+            });
+        }
+        // ---------------------------------------------------
 
         const existingBookingQuery = `
             SELECT id FROM bookings
@@ -49,7 +57,6 @@ const submitBookingRequest = async (req, res, next) => {
             });
         }
 
-        // Se pasa el objeto a createBooking sin 'email'
         const booking = await bookingModel.createBooking({
             name, phone, booking_date, slot_type, guest_count, notes
         });
@@ -57,14 +64,14 @@ const submitBookingRequest = async (req, res, next) => {
         res.status(201).json({ success: true, message: 'Booking request submitted successfully.', booking });
 
     } catch (error) {
-        // Manejo de errores específicos de validación o base de datos si es necesario
-        if (error.code === '23502') { // Error de columna NOT NULL (si phone fuera null)
+        if (error.code === '23502') {
              return res.status(400).json({ success: false, message: 'El campo Teléfono es obligatorio.' });
         }
-        next(error); // Pasa otros errores al manejador global
+        next(error);
     }
 };
 
+// --- Resto de los controladores (adminLoginController, etc.) sin cambios ---
 const adminLoginController = async (req, res, next) => {
     try {
         const username = validator.escape(req.body.username.trim());
@@ -122,7 +129,6 @@ const updateBookingStatusAdminController = async (req, res, next) => {
     try {
         const { id } = req.params;
         const status = validator.escape(req.body.status.trim());
-        // Asegurarse que el status es uno de los permitidos
         if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
             return res.status(400).json({ success: false, message: 'Estado inválido.' });
         }
@@ -139,7 +145,6 @@ const updateBookingStatusAdminController = async (req, res, next) => {
 const deleteBookingAdminController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        // Podrías verificar si la reserva existe antes de intentar borrarla
         await bookingModel.deleteBooking(id);
         res.json({ success: true, message: 'Booking deleted successfully.' });
     } catch (error) {

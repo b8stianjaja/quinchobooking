@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types'; // Step 1: Import PropTypes
 import { loginAdmin } from '../../services/adminService';
-import heroBackgroundImage from '../../assets/images/quincho.png';
+import heroBackgroundImage from '../../assets/images/quinchogallery/quincho.png';
 
 function AdminLoginPage({ onLoginSuccess }) {
   const [username, setUsername] = useState('');

@@ -11,6 +11,7 @@ const getAvailability = async (req, res, next) => {
         if (!year || !month) {
             return res.status(400).json({ message: 'Year and month query parameters are required.' });
         }
+        // Este servicio ya filtra correctamente por 'confirmed' para la vista del calendario
         const unavailableSlots = await availabilityService.getAvailableSlotsForMonth(parseInt(year), parseInt(month));
         res.json(unavailableSlots);
     } catch (error) {
@@ -21,7 +22,7 @@ const getAvailability = async (req, res, next) => {
 const submitBookingRequest = async (req, res, next) => {
     try {
         let { booking_date, slot_type, name, phone, guest_count, notes } = req.body;
-        const NOTES_MAX_LENGTH = 333; // Límite establecido a 333
+        const NOTES_MAX_LENGTH = 333;
 
         // Validaciones básicas
         if (!name || !phone || !booking_date || !slot_type) {
@@ -35,42 +36,55 @@ const submitBookingRequest = async (req, res, next) => {
         phone = validator.escape(phone.trim());
         notes = notes ? validator.escape(notes.trim()) : '';
 
-        // --- Validación de Longitud de Notas (actualizada a 333) ---
         if (notes.length > NOTES_MAX_LENGTH) {
             return res.status(400).json({
                 success: false,
                 message: `Las notas adicionales no pueden exceder los ${NOTES_MAX_LENGTH} caracteres.`
             });
         }
-        // --------------------------------------------------------
 
+        // --- MODIFICACIÓN CLAVE ---
+        // Ahora solo buscamos reservas CONFIRMADAS para bloquear una nueva solicitud.
         const existingBookingQuery = `
             SELECT id FROM bookings
-            WHERE booking_date = $1 AND slot_type = $2 AND (status = 'pending' OR status = 'confirmed')
+            WHERE booking_date = $1 AND slot_type = $2 AND status = 'confirmed'
         `;
+        // -------------------------
+
         const { rows } = await pool.query(existingBookingQuery, [booking_date, slot_type]);
 
         if (rows.length > 0) {
+            // El mensaje ahora solo se muestra si está confirmado
             return res.status(409).json({
                 success: false,
-                message: 'Lo sentimos, esta fecha y horario ya han sido reservados. Por favor, refresca el calendario y elige otro.'
+                message: 'Lo sentimos, esta fecha y horario ya se encuentran confirmados para otra reserva. Por favor, elige otro.'
             });
         }
 
+        // Si no hay reserva confirmada (puede haber pendientes), se crea la nueva solicitud pendiente.
         const booking = await bookingModel.createBooking({
-            name, phone, booking_date, slot_type, guest_count, notes
+            name, phone, booking_date, slot_type, guest_count, notes // status por defecto es 'pending'
         });
 
         res.status(201).json({ success: true, message: 'Booking request submitted successfully.', booking });
 
     } catch (error) {
-        if (error.code === '23502') { // Error de columna NOT NULL
+         // El error de base de datos por duplicado (23505) ya no debería ocurrir para pendientes
+         // gracias a la nueva migración, pero lo dejamos por si acaso.
+        if (error.code === '23505') { // unique_violation
+             return res.status(409).json({
+                success: false,
+                message: 'Error: La base de datos impidió crear una reserva duplicada confirmada.'
+            });
+        }
+        if (error.code === '23502') { // not_null_violation
              return res.status(400).json({ success: false, message: 'El campo Teléfono es obligatorio.' });
         }
         next(error); // Pasa otros errores al manejador global
     }
 };
 
+// --- Resto de los controladores sin cambios ---
 const adminLoginController = async (req, res, next) => {
     try {
         const username = validator.escape(req.body.username.trim());
@@ -117,7 +131,8 @@ const checkAdminSessionController = (req, res) => {
 
 const getAllBookingsAdminController = async (req, res, next) => {
     try {
-        const bookings = await bookingModel.getAllBookings();
+        const searchTerm = req.query.search || '';
+        const bookings = await bookingModel.getAllBookings(searchTerm);
         res.json(bookings);
     } catch (error) {
         next(error);
@@ -137,9 +152,18 @@ const updateBookingStatusAdminController = async (req, res, next) => {
         }
         res.json({ success: true, message: 'Booking status updated.', booking: updatedBooking });
     } catch (error) {
+        // --- Manejo Específico para Violación de Unicidad al Confirmar ---
+        if (error.code === '23505' && status === 'confirmed') { // unique_violation
+            return res.status(409).json({
+                success: false,
+                message: 'Error: Ya existe otra reserva confirmada para esta fecha y horario. No se puede confirmar esta.'
+            });
+        }
+        // -----------------------------------------------------------------
         next(error);
     }
 };
+
 
 const deleteBookingAdminController = async (req, res, next) => {
     try {

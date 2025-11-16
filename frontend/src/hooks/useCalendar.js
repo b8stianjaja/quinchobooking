@@ -33,7 +33,17 @@ export function useCalendar() {
   }, [year, month, fetchBookedDataForMonth]);
 
   const goToNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+    // Create a new date object based on the current state
+    const nextMonthDate = new Date(currentDate.getTime());
+    
+    // Set the date to the 1st to avoid month-end issues
+    nextMonthDate.setDate(1);
+    
+    // Set the month to the *next* month. 
+    // .setMonth() reliably handles year rollovers (e.g., Dec -> Jan).
+    nextMonthDate.setMonth(currentDate.getMonth() + 1);
+
+    setCurrentDate(nextMonthDate);
     setSelectedDate(null);
   };
 

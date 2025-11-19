@@ -14,14 +14,14 @@ function Footer() {
         </p>
         <div className="mb-4">
           <a
-            href="#"
+            href="https://facebook.com/QuinchoelRuco/"
             className="px-3 hover:text-yellow-400 transition-colors font-hero-title"
           >
             Facebook
           </a>
           <span className="text-gray-600">|</span>
           <a
-            href="#"
+            href="https://instagram.com/quincho_ruco/"
             className="px-3 hover:text-yellow-400 transition-colors font-hero-title"
           >
             Instagram

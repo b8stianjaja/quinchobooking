@@ -49,26 +49,26 @@ function Gallery() {
         </div>
 
         {galleryData.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 sm:gap-4 md:gap-6 space-y-4">
             {galleryData.map(
               (
                 image,
                 index // Necesitamos el 'index' aquí
               ) => (
-                <div
-                  key={image.id}
-                  className="aspect-[4/3] bg-gray-300 rounded-lg overflow-hidden cursor-pointer group relative shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-                  onClick={() => openModal(index)} // Pasamos el índice al abrir
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && openModal(index)}
-                >
-                  <img
-                    src={image.src}
-                    alt={image.alt}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
+              <div
+                key={image.id}
+                className="break-inside-avoid bg-gray-300 rounded-lg overflow-hidden cursor-pointer group relative shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                onClick={() => openModal(index)} // Pasamos el índice al abrir
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && openModal(index)}
+              >
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  loading="lazy"
+                  className="w-full h-auto transition-transform duration-300 group-hover:scale-110"
+                />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 font-hero-title">
                     <h3 className="text-white text-sm font-semibold font-hero-title">
                       {' '}

@@ -60,12 +60,12 @@ const StatusBadge = ({ status }) => {
 StatusBadge.propTypes = { status: PropTypes.string.isRequired };
 
 const StatCard = ({ title, value, icon, colorClass }) => (
-  <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between relative overflow-hidden group">
+  <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between relative overflow-hidden group transition-all duration-200 hover:shadow-md">
     <div>
       <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
         {title}
       </p>
-      <p className="text-2xl md:text-3xl font-bold text-gray-800">{value}</p>
+      <p className="text-3xl font-bold text-gray-800">{value}</p>
     </div>
     <div className={`p-3 rounded-xl ${colorClass} bg-opacity-10 text-opacity-100`}>
       {icon}
@@ -278,11 +278,27 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
 
       <main className="container mx-auto px-4 md:px-8 py-6 md:py-8">
         
-        {/* Stats Cards */}
-        <section className="grid grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
-          <StatCard title="Total" value={stats.total} icon={<Icons.Total />} colorClass="bg-blue-500 text-blue-600" />
-          <StatCard title="Pendiente" value={stats.pending} icon={<Icons.Pending />} colorClass="bg-yellow-500 text-yellow-600" />
-          <StatCard title="Confirmada" value={stats.confirmed} icon={<Icons.Confirmed />} colorClass="bg-green-500 text-green-600" />
+        {/* --- STATS CARDS (Ajuste Responsive) --- */}
+        {/* En móvil (por defecto): grid-cols-1 (apiladas). En 'sm' (tablet/pc): grid-cols-3 (fila). */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+          <StatCard 
+            title="Total Reservas" 
+            value={stats.total} 
+            icon={<Icons.Total />} 
+            colorClass="bg-blue-500 text-blue-600" 
+          />
+          <StatCard 
+            title="Pendientes" 
+            value={stats.pending} 
+            icon={<Icons.Pending />} 
+            colorClass="bg-yellow-500 text-yellow-600" 
+          />
+          <StatCard 
+            title="Confirmadas" 
+            value={stats.confirmed} 
+            icon={<Icons.Confirmed />} 
+            colorClass="bg-green-500 text-green-600" 
+          />
         </section>
 
         {/* Toolbar: Search & Filters */}

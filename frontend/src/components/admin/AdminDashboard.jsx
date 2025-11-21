@@ -22,6 +22,48 @@ const getInitials = (name) => {
     .toUpperCase();
 };
 
+// --- Helper: Format Date ---
+const formatDate = (dateString, includeTime = false) => {
+  if (!dateString) return '-';
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'UTC', // Important for booking_date which is usually YYYY-MM-DD
+  };
+  
+  // If it's a timestamp (like created_at), we might want local time
+  if (includeTime) {
+    delete options.timeZone; // Use browser local time
+    options.hour = '2-digit';
+    options.minute = '2-digit';
+  } else {
+      // Add weekday for booking dates
+      options.weekday = 'short';
+  }
+
+  return new Date(dateString).toLocaleDateString('es-CL', options);
+};
+
+const timeAgo = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    let interval = seconds / 31536000;
+    if (interval > 1) return `Hace ${Math.floor(interval)} años`;
+    interval = seconds / 2592000;
+    if (interval > 1) return `Hace ${Math.floor(interval)} meses`;
+    interval = seconds / 86400;
+    if (interval > 1) return `Hace ${Math.floor(interval)} días`;
+    interval = seconds / 3600;
+    if (interval > 1) return `Hace ${Math.floor(interval)} horas`;
+    interval = seconds / 60;
+    if (interval > 1) return `Hace ${Math.floor(interval)} min`;
+    return 'Hace un momento';
+};
+
 // --- Components ---
 
 const StatusBadge = ({ status }) => {
@@ -81,39 +123,18 @@ StatCard.propTypes = {
 
 // --- Icons ---
 const Icons = {
-  Search: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-  ),
-  Logout: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-  ),
-  Total: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-  ),
-  Pending: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-  ),
-  Confirmed: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-  ),
-  Trash: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-  ),
-  Save: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-  ),
-  Chat: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-  ),
-  Calendar: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-  ),
-  Clock: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-  ),
-  Users: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-  )
+  Search: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
+  Logout: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
+  Total: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+  Pending: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  Confirmed: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  Trash: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+  Save: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>,
+  Chat: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+  Calendar: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+  Clock: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  Users: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
+  Sort: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 inline text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>
 };
 
 function AdminDashboard({ currentAdminUser, onLogout }) {
@@ -125,21 +146,11 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
   const [currentNotes, setCurrentNotes] = useState('');
   const [currentNotesTitle, setCurrentNotesTitle] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortConfig, setSortConfig] = useState({ key: 'booking_date', direction: 'desc' });
 
   const navigate = useNavigate();
 
-  const openNotesModal = (notes, bookingName) => {
-    setCurrentNotes(notes);
-    setCurrentNotesTitle(`Notas de ${bookingName}`);
-    setIsNotesModalOpen(true);
-  };
-
-  const closeNotesModal = () => {
-    setIsNotesModalOpen(false);
-    setCurrentNotes('');
-    setCurrentNotesTitle('');
-  };
-
+  // --- Data Fetching ---
   const fetchBookings = useCallback(async (currentSearchTerm, currentStatusFilter) => {
     if (!currentAdminUser) {
         setIsLoading(false);
@@ -178,7 +189,58 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, statusFilter, currentAdminUser, fetchBookings]);
 
+  // --- Sorting Logic ---
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
 
+  const sortedBookings = useMemo(() => {
+    let sortableBookings = [...bookings];
+    if (sortConfig.key !== null) {
+      sortableBookings.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // Handle specific types
+        if (sortConfig.key === 'booking_date' || sortConfig.key === 'created_at') {
+            aValue = new Date(aValue);
+            bValue = new Date(bValue);
+        } else if (typeof aValue === 'string') {
+            aValue = aValue.toLowerCase();
+            bValue = bValue.toLowerCase();
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableBookings;
+  }, [bookings, sortConfig]);
+
+
+  // --- Modal Logic ---
+  const openNotesModal = (notes, bookingName) => {
+    setCurrentNotes(notes);
+    setCurrentNotesTitle(`Notas de ${bookingName}`);
+    setIsNotesModalOpen(true);
+  };
+
+  const closeNotesModal = () => {
+    setIsNotesModalOpen(false);
+    setCurrentNotes('');
+    setCurrentNotesTitle('');
+  };
+
+  // --- Action Handlers ---
   const handleStatusChange = (bookingId, newStatus) => {
     setEditStatus((prev) => ({ ...prev, [bookingId]: newStatus }));
   };
@@ -214,7 +276,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
   };
 
   const handleDeleteBooking = async (bookingId) => {
-    if (!window.confirm(`¿Eliminar reserva #${bookingId}?`)) return;
+    if (!window.confirm(`¿Eliminar reserva #${bookingId}? Esta acción no se puede deshacer.`)) return;
 
     const promise = deleteBookingAdmin(bookingId);
     toast.promise(promise, {
@@ -231,6 +293,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     });
   };
 
+  // --- Stats ---
   const stats = useMemo(() => ({
       total: bookings.length,
       pending: bookings.filter((b) => b.status === 'pending').length,
@@ -278,30 +341,14 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
 
       <main className="container mx-auto px-4 md:px-8 py-6 md:py-8">
         
-        {/* --- STATS CARDS (Ajuste Responsive) --- */}
-        {/* En móvil (por defecto): grid-cols-1 (apiladas). En 'sm' (tablet/pc): grid-cols-3 (fila). */}
+        {/* Stats Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-          <StatCard 
-            title="Total Reservas" 
-            value={stats.total} 
-            icon={<Icons.Total />} 
-            colorClass="bg-blue-500 text-blue-600" 
-          />
-          <StatCard 
-            title="Pendientes" 
-            value={stats.pending} 
-            icon={<Icons.Pending />} 
-            colorClass="bg-yellow-500 text-yellow-600" 
-          />
-          <StatCard 
-            title="Confirmadas" 
-            value={stats.confirmed} 
-            icon={<Icons.Confirmed />} 
-            colorClass="bg-green-500 text-green-600" 
-          />
+          <StatCard title="Total Reservas" value={stats.total} icon={<Icons.Total />} colorClass="bg-blue-500 text-blue-600" />
+          <StatCard title="Pendientes" value={stats.pending} icon={<Icons.Pending />} colorClass="bg-yellow-500 text-yellow-600" />
+          <StatCard title="Confirmadas" value={stats.confirmed} icon={<Icons.Confirmed />} colorClass="bg-green-500 text-green-600" />
         </section>
 
-        {/* Toolbar: Search & Filters */}
+        {/* Toolbar */}
         <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
            <div className="relative w-full md:w-72">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -309,7 +356,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
               </div>
               <input 
                 type="text" 
-                placeholder="Buscar..." 
+                placeholder="Buscar cliente, teléfono..." 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
                 className="block w-full rounded-xl border-gray-200 pl-10 pr-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500 bg-gray-50 focus:bg-white transition-all" 
@@ -324,23 +371,44 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
            </div>
         </div>
 
-        {/* --- Desktop Table View (Hidden on Mobile) --- */}
+        {/* Desktop Table View */}
         <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha</th>
+                <th 
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('name')}
+                >
+                  Cliente <Icons.Sort />
+                </th>
+                <th 
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('booking_date')}
+                >
+                  Fecha Reserva <Icons.Sort />
+                </th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Info</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+                <th 
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('created_at')}
+                >
+                  Solicitado <Icons.Sort />
+                </th>
+                <th 
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('status')}
+                >
+                  Estado <Icons.Sort />
+                </th>
                 <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {bookings.length === 0 ? (
-                <tr><td colSpan="5" className="p-10 text-center text-gray-400">No hay reservas</td></tr>
+              {sortedBookings.length === 0 ? (
+                <tr><td colSpan="6" className="p-10 text-center text-gray-400">No hay reservas encontradas</td></tr>
               ) : (
-                bookings.map((booking) => (
+                sortedBookings.map((booking) => (
                   <tr key={booking.id} className="hover:bg-orange-50/30 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -355,7 +423,8 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                        <div className="text-sm text-gray-700 font-medium">
-                         {new Date(booking.booking_date).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}
+                         {/* Formatted date with year and weekday */}
+                         {formatDate(booking.booking_date)}
                        </div>
                     </td>
                     <td className="px-6 py-4">
@@ -370,10 +439,20 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                          </div>
                          {booking.notes && (
                            <button onClick={() => openNotesModal(booking.notes, booking.name)} className="text-xs text-orange-600 hover:underline flex items-center gap-1 w-fit">
-                             <Icons.Chat /> Nota
+                             <Icons.Chat /> Ver Nota
                            </button>
                          )}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col">
+                            <span className="text-xs text-gray-900">
+                                {formatDate(booking.created_at, true)}
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                                {timeAgo(booking.created_at)}
+                            </span>
+                        </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={booking.status} />
@@ -391,9 +470,9 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                          </select>
                          
                          {editStatus[booking.id] && editStatus[booking.id] !== booking.status && (
-                           <button onClick={() => handleUpdateStatus(booking.id)} className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200"><Icons.Save /></button>
+                           <button onClick={() => handleUpdateStatus(booking.id)} className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200" title="Guardar Cambios"><Icons.Save /></button>
                          )}
-                         <button onClick={() => handleDeleteBooking(booking.id)} className="p-1 bg-red-50 text-red-500 rounded hover:bg-red-100"><Icons.Trash /></button>
+                         <button onClick={() => handleDeleteBooking(booking.id)} className="p-1 bg-red-50 text-red-500 rounded hover:bg-red-100" title="Eliminar Reserva"><Icons.Trash /></button>
                        </div>
                     </td>
                   </tr>
@@ -403,16 +482,16 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
           </table>
         </div>
 
-        {/* --- Mobile Card View (Visible only on Mobile) --- */}
+        {/* Mobile Card View */}
         <div className="md:hidden space-y-4">
           {isLoading ? (
              <div className="text-center text-gray-400 py-10">Cargando...</div>
-          ) : bookings.length === 0 ? (
+          ) : sortedBookings.length === 0 ? (
              <div className="text-center text-gray-400 py-10">No hay reservas</div>
           ) : (
-            bookings.map((booking) => (
+            sortedBookings.map((booking) => (
               <div key={booking.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                {/* Card Header */}
+                {/* Header */}
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-sm font-bold">
@@ -426,23 +505,30 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                   <StatusBadge status={booking.status} />
                 </div>
 
-                {/* Card Body */}
+                {/* Details Grid */}
                 <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
                   <div className="bg-gray-50 p-2 rounded-lg">
-                    <div className="flex items-center gap-1 text-gray-400 text-xs mb-1"><Icons.Calendar /> Fecha</div>
-                    <div className="font-medium text-gray-700">
-                      {new Date(booking.booking_date).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                    <div className="flex items-center gap-1 text-gray-400 text-xs mb-1"><Icons.Calendar /> Fecha Reserva</div>
+                    <div className="font-medium text-gray-700 text-xs">
+                      {formatDate(booking.booking_date)}
                     </div>
                   </div>
                   <div className="bg-gray-50 p-2 rounded-lg">
                     <div className="flex items-center gap-1 text-gray-400 text-xs mb-1"><Icons.Clock /> Horario</div>
-                    <div className="font-medium text-gray-700 capitalize">
+                    <div className="font-medium text-gray-700 capitalize text-xs">
                       {booking.slot_type === 'day' ? 'Día (09-19)' : 'Noche (20-07)'}
                     </div>
                   </div>
+                  {/* New Requested At for Mobile */}
+                  <div className="bg-gray-50 p-2 rounded-lg col-span-2">
+                     <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-xs">Solicitado:</span>
+                        <span className="text-gray-600 text-xs font-medium">{formatDate(booking.created_at)} ({timeAgo(booking.created_at)})</span>
+                     </div>
+                  </div>
                 </div>
 
-                {/* Notes Preview if exists */}
+                {/* Notes */}
                 {booking.notes && (
                   <div 
                     onClick={() => openNotesModal(booking.notes, booking.name)}
@@ -453,7 +539,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
                   </div>
                 )}
 
-                {/* Card Footer Actions */}
+                {/* Actions */}
                 <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
                    <div className="flex items-center gap-2 w-full">
                       <select 

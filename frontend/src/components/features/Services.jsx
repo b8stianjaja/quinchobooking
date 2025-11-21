@@ -1,6 +1,6 @@
 // src/components/features/Services.jsx
 import React, { useEffect, useRef, useState } from 'react';
-import tacaTacaIcon from '../../assets/icons/tacataca.png'; //
+import tacaTacaIcon from '../../assets/icons/tacataca.png';
 
 const servicesList = [
   {
@@ -73,6 +73,7 @@ const servicesList = [
 
 function Services() {
   const [isVisible, setIsVisible] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false); // Estado para controlar la fase de animación
   const sectionRef = useRef(null);
 
   useEffect(() => {
@@ -80,7 +81,12 @@ function Services() {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
+          // Esperamos a que termine la animación de entrada (1.2s aprox) para activar el modo interactivo rápido
+          const timer = setTimeout(() => {
+            setHasAnimated(true);
+          }, 1200);
           observer.disconnect();
+          return () => clearTimeout(timer);
         }
       },
       { threshold: 0.1 }
@@ -127,42 +133,51 @@ function Services() {
           {servicesList.map((service, index) => (
             <div
               key={`${service.name}-${index}`}
-              style={{ transitionDelay: isVisible ? `${index * 80}ms` : '0ms' }}
-              // Added 'select-none' and 'cursor-default' to prevent text selection bars
+              // Solo aplicamos delay durante la entrada, luego se quita para respuesta instantánea
+              style={{ transitionDelay: isVisible && !hasAnimated ? `${index * 80}ms` : '0ms' }}
               className={`
                 group relative bg-white font-hero-title p-6 rounded-2xl 
                 shadow-[0_8px_30px_rgb(0,0,0,0.04)] 
                 border border-amber-100/50
                 flex flex-col items-center text-center h-full
                 
-                /* UX FIXES: Prevent text selection */
+                /* UX: Prevenir selección de texto */
                 select-none cursor-default
 
-                /* ANIMATION */
-                spring-transition
-                transform transition-all duration-700 
+                /* ANIMACIÓN: Lenta al entrar (spring), Rápida al interactuar (ease-out) */
+                transform transition-all 
+                ${hasAnimated ? 'duration-300 ease-out' : 'duration-700 spring-transition'}
 
+                /* ESTADO DE ENTRADA */
                 ${isVisible 
                   ? 'opacity-100 translate-y-0 scale-100' 
                   : 'opacity-0 translate-y-20 scale-90'}
 
-                /* INTERACTIONS */
-                hover:shadow-xl hover:border-amber-200 hover:-translate-y-2
+                /* INTERACCIONES (Escritorio Solamente) */
+                /* El media query [@media(hover:hover)] evita que se quede "pegado" en móviles */
+                [@media(hover:hover)]:hover:shadow-xl 
+                [@media(hover:hover)]:hover:border-amber-200 
+                [@media(hover:hover)]:hover:-translate-y-2
+                
+                /* INTERACCIONES (Móvil y Escritorio - Click/Touch) */
                 active:scale-[0.97] active:transition-transform active:duration-100
               `}
             >
               <div 
-                style={{ transitionDelay: isVisible ? `${(index * 80) + 150}ms` : '0ms' }}
+                style={{ transitionDelay: isVisible && !hasAnimated ? `${(index * 80) + 150}ms` : '0ms' }}
                 className={`
                   w-16 h-16 mb-5 rounded-full bg-amber-50 text-yellow-900
                   flex items-center justify-center text-3xl
                   
-                  spring-transition
-                  transition-all duration-700
+                  transition-all 
+                  ${hasAnimated ? 'duration-300 ease-out' : 'duration-700 spring-transition'}
 
                   ${isVisible ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}
                   
-                  group-hover:bg-amber-100 group-hover:scale-110 group-hover:rotate-6
+                  /* Efectos Hover protegidos para escritorio */
+                  [@media(hover:hover)]:group-hover:bg-amber-100 
+                  [@media(hover:hover)]:group-hover:scale-110 
+                  [@media(hover:hover)]:group-hover:rotate-6
                 `}
               >
                 {service.isImage ? (
@@ -178,7 +193,11 @@ function Services() {
                 )}
               </div>
 
-              <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-[#6F4E37] transition-colors duration-300">
+              <h3 className={`
+                text-xl font-bold text-gray-800 mb-3 
+                transition-colors duration-300
+                [@media(hover:hover)]:group-hover:text-[#6F4E37]
+              `}>
                 {service.name}
               </h3>
 

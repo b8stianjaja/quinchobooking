@@ -154,7 +154,9 @@ const updateBookingStatusAdminController = async (req, res, next) => {
         res.json({ success: true, message: 'Booking status updated.', booking: updatedBooking });
     } catch (error) {
         // Manejo Específico para Violación de Unicidad al Confirmar
-        if (error.code === '23505' && status === 'confirmed' && error.constraint === 'unique_confirmed_booking_idx') { // unique_violation
+        // FIX: Removed the specific constraint check (error.constraint === 'unique_confirmed_booking_idx')
+        // to ensure it catches the duplicate key error regardless of the index name in the production DB.
+        if (error.code === '23505' && status === 'confirmed') { 
             return res.status(409).json({
                 success: false,
                 message: 'Error: Ya existe otra reserva confirmada para esta fecha y horario. No se puede confirmar esta.'

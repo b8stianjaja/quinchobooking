@@ -1,4 +1,4 @@
-// In frontend/src/components/admin/AdminDashboard.jsx
+// frontend/src/components/admin/AdminDashboard.jsx
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
@@ -9,50 +9,108 @@ import {
   updateBookingStatusAdmin,
   deleteBookingAdmin,
 } from '../../services/adminService';
-import NotesModal from '../common/NotesModal'; // Asegúrate que la ruta sea correcta
+import NotesModal from '../common/NotesModal';
 
-// --- Componentes StatusBadge y StatCard ---
+// --- Helper: Get Initials ---
+const getInitials = (name) => {
+  if (!name) return '?';
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+};
+
+// --- Components ---
+
 const StatusBadge = ({ status }) => {
-  const baseClasses =
-    'px-2.5 py-0.5 text-xs font-semibold rounded-full inline-block';
-  const statusStyles = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    confirmed: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
+  const config = {
+    pending: {
+      bg: 'bg-yellow-50',
+      text: 'text-yellow-700',
+      dot: 'bg-yellow-500',
+      label: 'Pendiente',
+    },
+    confirmed: {
+      bg: 'bg-green-50',
+      text: 'text-green-700',
+      dot: 'bg-green-500',
+      label: 'Confirmada',
+    },
+    cancelled: {
+      bg: 'bg-red-50',
+      text: 'text-red-700',
+      dot: 'bg-red-500',
+      label: 'Cancelada',
+    },
   };
-  const statusText = {
-    pending: 'Pendiente',
-    confirmed: 'Confirmada',
-    cancelled: 'Cancelada',
-  };
+
+  const current = config[status] || config.pending;
+
   return (
     <span
-      className={`${baseClasses} ${
-        statusStyles[status] || 'bg-gray-100 text-gray-800'
-      }`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-opacity-10 ${current.bg} ${current.text} border-current`}
     >
-      {statusText[status] || status}
+      <span className={`w-1.5 h-1.5 rounded-full ${current.dot}`} />
+      {current.label}
     </span>
   );
 };
 StatusBadge.propTypes = { status: PropTypes.string.isRequired };
 
-const StatCard = ({ title, value, icon }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center space-x-4">
-    <div className="bg-orange-100 p-3 rounded-full">{icon}</div>
-    <div>
-      <p className="text-gray-500 text-sm font-medium">{title}</p>
-      <p className="text-2xl font-bold text-gray-800">{value}</p>
+const StatCard = ({ title, value, icon, colorClass }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md flex items-center space-x-4 relative overflow-hidden group">
+    {/* Decorative background shape */}
+    <div
+      className={`absolute right-0 top-0 w-24 h-24 ${colorClass} opacity-5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110`}
+    />
+
+    <div className={`p-3 rounded-xl ${colorClass} bg-opacity-10 text-opacity-100`}>
+      {icon}
+    </div>
+    <div className="relative z-10">
+      <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
+        {title}
+      </p>
+      <p className="text-3xl font-bold text-gray-800">{value}</p>
     </div>
   </div>
 );
 StatCard.propTypes = {
   title: PropTypes.string.isRequired,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  icon: PropTypes.node, // Permitir null o JSX element
+  icon: PropTypes.node,
+  colorClass: PropTypes.string,
 };
-// ------------------------------------------
 
+// --- Icons (inline SVGs for zero dependencies) ---
+const Icons = {
+  Search: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+  ),
+  Logout: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+  ),
+  Total: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+  ),
+  Pending: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+  ),
+  Confirmed: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+  ),
+  Trash: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+  ),
+  Save: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+  ),
+  Chat: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+  )
+};
 
 function AdminDashboard({ currentAdminUser, onLogout }) {
   const [bookings, setBookings] = useState([]);
@@ -62,7 +120,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [currentNotes, setCurrentNotes] = useState('');
   const [currentNotesTitle, setCurrentNotesTitle] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // Estado para el filtro
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const navigate = useNavigate();
 
@@ -91,7 +149,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
     } catch (err) {
       toast.error(err.message || 'No se pudieron cargar las reservas.');
       if (err.message?.toLowerCase().includes('unauthorized') || err.message?.toLowerCase().includes('no active session')) {
-        toast.error('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+        toast.error('Tu sesión ha expirado.');
         if (onLogout) onLogout(navigate);
       }
     } finally {
@@ -106,7 +164,6 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
        setIsLoading(false);
        setBookings([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAdminUser]);
 
   useEffect(() => {
@@ -129,20 +186,20 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
 
     const promise = updateBookingStatusAdmin(bookingId, newStatus);
     toast.promise(promise, {
-      loading: 'Actualizando estado...',
+      loading: 'Actualizando...',
       success: (data) => {
          if (data.success) {
             fetchBookings(searchTerm, statusFilter);
-            return `Reserva actualizada con éxito.`;
+            return `Actualizado a ${newStatus === 'confirmed' ? 'Confirmada' : newStatus === 'cancelled' ? 'Cancelada' : 'Pendiente'}`;
          } else {
-             throw new Error(data.message || 'No se pudo actualizar la reserva.');
+             throw new Error(data.message || 'Error al actualizar.');
          }
       },
       error: (err) => {
           if (err.message.includes('Ya existe otra reserva confirmada')) {
-              return `Error: ${err.message}`;
+              return `Cruce de Fechas: Ya existe una reserva confirmada.`;
           }
-          return `Error al actualizar: ${err.message}`;
+          return `Error: ${err.message}`;
       }
     });
     setEditStatus((prev) => {
@@ -153,216 +210,216 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
   };
 
   const handleDeleteBooking = async (bookingId) => {
-    if (
-      !window.confirm(
-        `¿Estás seguro que quieres eliminar la reserva ID ${bookingId}? Esta acción es permanente.`
-      )
-    )
-      return;
+    if (!window.confirm(`¿Eliminar reserva #${bookingId}? Esta acción es irreversible.`)) return;
 
     const promise = deleteBookingAdmin(bookingId);
     toast.promise(promise, {
-      loading: 'Eliminando reserva...',
+      loading: 'Eliminando...',
       success: (data) => {
         if (data.success) {
             fetchBookings(searchTerm, statusFilter);
-            return `Reserva eliminada con éxito.`;
+            return `Reserva eliminada.`;
         } else {
-            throw new Error(data.message || 'No se pudo eliminar la reserva.');
+            throw new Error(data.message || 'Error al eliminar.');
         }
       },
       error: (err) => `Error: ${err.message}`,
     });
   };
 
-
-  const stats = useMemo(
-    () => ({
+  const stats = useMemo(() => ({
       total: bookings.length,
       pending: bookings.filter((b) => b.status === 'pending').length,
       confirmed: bookings.filter((b) => b.status === 'confirmed').length,
-    }),
-    [bookings]
+    }), [bookings]
   );
 
-  const truncateText = (text, maxLength = 60) => {
-    if (!text) return '-';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
-
   const getFilterButtonClasses = (filterValue) => {
-    const base = "px-4 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50";
-    if (statusFilter === filterValue) {
-      return `${base} bg-orange-600 text-white shadow`;
-    }
-    return `${base} bg-gray-100 text-gray-700 hover:bg-gray-200`;
+    const isActive = statusFilter === filterValue;
+    return `px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 
+      ${isActive 
+        ? 'bg-orange-600 text-white shadow-md shadow-orange-200' 
+        : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-orange-200'
+      }`;
   };
-
 
   return (
-    <div className="min-h-screen bg-gray-50">
-       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-20">
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">
-              Panel de Administración
-            </h1>
-            <p className="text-sm text-gray-500">
-              Bienvenido,{' '}
-              <span className="font-semibold text-orange-600">
-                {currentAdminUser?.username}
-              </span>
-            </p>
+    <div className="min-h-screen bg-gray-50/50 font-sans">
+       {/* Header */}
+       <header className="bg-white border-b border-gray-200 sticky top-0 z-30 backdrop-blur-md bg-white/80">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600 font-bold">
+              Q
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-800 leading-tight">Panel Admin</h1>
+              <p className="text-xs text-gray-500">Gestión de Quincho El Ruco</p>
+            </div>
           </div>
-          <button
-            onClick={() => onLogout(navigate)}
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 font-semibold transition-colors duration-200"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"> <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" /> </svg>
-            <span>Cerrar Sesión</span>
-          </button>
+          
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600 hidden sm:inline">
+              Hola, <span className="font-semibold text-gray-900">{currentAdminUser?.username}</span>
+            </span>
+            <button
+              onClick={() => onLogout(navigate)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <Icons.Logout />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Sección de Estadísticas (Con SVGs corregidos) */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <StatCard
-            title="Total (Vista Actual)"
-            value={stats.total}
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-orange-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            title="Pendientes (Vista Actual)"
-            value={stats.pending}
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-yellow-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            title="Confirmadas (Vista Actual)"
-            value={stats.confirmed}
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-green-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Stats Cards */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <StatCard title="Total Reservas" value={stats.total} icon={<Icons.Total />} colorClass="bg-blue-500 text-blue-600" />
+          <StatCard title="Pendientes" value={stats.pending} icon={<Icons.Pending />} colorClass="bg-yellow-500 text-yellow-600" />
+          <StatCard title="Confirmadas" value={stats.confirmed} icon={<Icons.Confirmed />} colorClass="bg-green-500 text-green-600" />
         </section>
 
-        {/* Tabla de Gestión de Reservas */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-          {/* Cabecera con Título, Filtros y Búsqueda */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-             <div className="flex-grow flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-                <h2 className="text-xl font-bold text-gray-800 flex-shrink-0"> Gestión de Reservas </h2>
-                {/* Botones de Filtro por Estado */}
-                <div className="flex flex-wrap justify-center sm:justify-start space-x-2 border border-gray-200 p-1 rounded-lg">
-                  <button className={getFilterButtonClasses('all')} onClick={() => setStatusFilter('all')}>Todas</button>
-                  <button className={getFilterButtonClasses('pending')} onClick={() => setStatusFilter('pending')}>Pendientes</button>
-                  <button className={getFilterButtonClasses('confirmed')} onClick={() => setStatusFilter('confirmed')}>Confirmadas</button>
-                  <button className={getFilterButtonClasses('cancelled')} onClick={() => setStatusFilter('cancelled')}>Canceladas</button>
-                </div>
-             </div>
-             {/* Barra de Búsqueda */}
-            <div className="relative w-full md:w-auto flex-shrink-0">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"> <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"> <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" /> </svg> </div>
-              <input type="text" placeholder="Buscar por nombre, tel o notas..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="block w-full rounded-md border-gray-300 py-2 pl-10 pr-3 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" />
-            </div>
-          </div>
+        {/* Toolbar: Search & Filters */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+           <div className="flex flex-wrap gap-2">
+              <button className={getFilterButtonClasses('all')} onClick={() => setStatusFilter('all')}>Todas</button>
+              <button className={getFilterButtonClasses('pending')} onClick={() => setStatusFilter('pending')}>Pendientes</button>
+              <button className={getFilterButtonClasses('confirmed')} onClick={() => setStatusFilter('confirmed')}>Confirmadas</button>
+              <button className={getFilterButtonClasses('cancelled')} onClick={() => setStatusFilter('cancelled')}>Canceladas</button>
+           </div>
 
-          {/* Tabla */}
+           <div className="relative w-full md:w-72 group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Icons.Search />
+              </div>
+              <input 
+                type="text" 
+                placeholder="Buscar cliente, teléfono..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="block w-full rounded-xl border-gray-200 pl-10 pr-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:ring-orange-500 transition-shadow group-hover:shadow-md" 
+              />
+           </div>
+        </div>
+
+        {/* Bookings Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {[ 'Cliente', 'Teléfono', 'Detalles del Evento', 'Invitados', 'Notas', 'Estado', 'Acciones', ].map((header) => (
-                     <th key={header} scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"> {header} </th>
-                  ))}
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Cliente</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha del Evento</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Detalles</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-100">
                 {isLoading ? (
-                  <tr> <td colSpan="7" className="text-center p-8 text-gray-500 animate-pulse"> Cargando reservas... </td> </tr>
+                  <tr><td colSpan="5" className="p-12 text-center text-gray-400 animate-pulse">Cargando datos...</td></tr>
                 ) : bookings.length === 0 ? (
-                  <tr> <td colSpan="7" className="text-center p-8 text-gray-500">
-                     {searchTerm || statusFilter !== 'all' ? 'No se encontraron reservas para los filtros aplicados.' : 'No hay reservas registradas.'}
-                  </td> </tr>
+                  <tr>
+                    <td colSpan="5" className="p-12 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400">
+                        <svg className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        <p className="text-sm font-medium">No se encontraron reservas</p>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   bookings.map((booking) => (
-                    <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
-                      {/* Celdas de datos ... */}
-                       <td className="px-6 py-4 whitespace-nowrap"> <div className="text-sm font-semibold text-gray-900">{booking.name || '-'}</div></td>
-                      <td className="px-6 py-4 whitespace-nowrap"> <div className="text-sm text-gray-600">{booking.phone || '-'}</div></td>
+                    <tr key={booking.id} className="hover:bg-orange-50/30 transition-colors group">
+                      
+                      {/* Client Column */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                         <div className="text-sm text-gray-600">
-                           {new Date(booking.booking_date).toLocaleDateString( 'es-CL', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC', } )}
-                           <br />
-                           <span className="font-semibold capitalize"> {booking.slot_type === 'day' ? 'Día' : booking.slot_type === 'night' ? 'Noche' : booking.slot_type} </span>
-                         </div>
-                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap"> <div className="text-sm text-gray-600 text-center">{booking.guest_count || '-'}</div></td>
-                      <td className="px-6 py-4 max-w-xs"> {/* Notas con Modal */}
-                        <div className="flex items-center space-x-2">
-                           {booking.notes && <span className="text-gray-400" title="Esta reserva tiene notas">💬</span>}
-                           <span className="text-sm text-gray-600 flex-grow overflow-hidden whitespace-nowrap overflow-ellipsis">
-                              {truncateText(booking.notes, 40)}
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-orange-100 to-amber-200 rounded-full flex items-center justify-center text-amber-700 font-bold text-sm shadow-inner">
+                            {getInitials(booking.name)}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-semibold text-gray-900">{booking.name}</div>
+                            <div className="text-sm text-gray-500 font-mono">{booking.phone}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Date Column */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                         <div className="flex flex-col">
+                           <span className="text-sm font-bold text-gray-700 capitalize">
+                             {new Date(booking.booking_date).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
                            </span>
-                           {booking.notes && booking.notes.length > 40 && (
-                             <button onClick={() => openNotesModal(booking.notes, booking.name)} className="text-orange-600 hover:text-orange-800 text-xs font-medium p-1 rounded hover:bg-orange-50 flex-shrink-0" aria-label="Ver notas completas"> Ver más </button>
+                           <span className="text-xs text-gray-400">
+                             {new Date(booking.booking_date).getFullYear()}
+                           </span>
+                         </div>
+                      </td>
+
+                      {/* Details Column (Slot + Guests + Notes) */}
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                           <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${booking.slot_type === 'day' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                {booking.slot_type === 'day' ? 'Día' : 'Noche'}
+                              </span>
+                              <span className="text-xs text-gray-600 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                {booking.guest_count || '?'} pax
+                              </span>
+                           </div>
+                           {booking.notes && (
+                             <button 
+                               onClick={() => openNotesModal(booking.notes, booking.name)}
+                               className="mt-1 text-xs text-orange-600 hover:text-orange-800 flex items-center gap-1 font-medium transition-colors"
+                             >
+                               <Icons.Chat />
+                               Ver nota
+                             </button>
                            )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap"> <StatusBadge status={booking.status} /> </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium"> {/* Acciones */}
-                         <div className="flex items-center space-x-2">
-                           <select value={editStatus[booking.id] || booking.status} onChange={(e) => handleStatusChange(booking.id, e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-xs py-1.5 px-2" >
-                             <option value="pending">Pendiente</option>
-                             <option value="confirmed">Confirmada</option>
-                             <option value="cancelled">Cancelada</option>
-                           </select>
-                           <button onClick={() => handleUpdateStatus(booking.id)} disabled={ !editStatus[booking.id] || editStatus[booking.id] === booking.status } className="p-2 text-green-600 hover:text-green-900 disabled:text-gray-300 disabled:cursor-not-allowed" aria-label="Guardar estado" > <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"> <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /> </svg> </button>
-                           <button onClick={() => handleDeleteBooking(booking.id)} className="p-2 text-red-600 hover:text-red-900" aria-label="Eliminar reserva" > <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"> <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /> </svg> </button>
+
+                      {/* Status Column */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusBadge status={booking.status} />
+                      </td>
+
+                      {/* Actions Column */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                         <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                           <div className="relative">
+                             <select 
+                               value={editStatus[booking.id] || booking.status} 
+                               onChange={(e) => handleStatusChange(booking.id, e.target.value)} 
+                               className="block w-32 pl-3 pr-8 py-1.5 text-xs border-gray-300 focus:outline-none focus:ring-orange-500 focus:border-orange-500 rounded-md bg-gray-50"
+                             >
+                               <option value="pending">Pendiente</option>
+                               <option value="confirmed">Confirmada</option>
+                               <option value="cancelled">Cancelada</option>
+                             </select>
+                           </div>
+                           
+                           {editStatus[booking.id] && editStatus[booking.id] !== booking.status && (
+                             <button 
+                               onClick={() => handleUpdateStatus(booking.id)} 
+                               className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                               title="Guardar cambios"
+                             >
+                               <Icons.Save />
+                             </button>
+                           )}
+
+                           <button 
+                             onClick={() => handleDeleteBooking(booking.id)} 
+                             className="p-1.5 bg-gray-100 text-gray-500 rounded hover:bg-red-100 hover:text-red-600 transition-colors ml-1"
+                             title="Eliminar reserva"
+                           >
+                             <Icons.Trash />
+                           </button>
                          </div>
                       </td>
                     </tr>
@@ -374,7 +431,7 @@ function AdminDashboard({ currentAdminUser, onLogout }) {
         </div>
       </main>
 
-      {/* Modal de Notas */}
+      {/* Modal */}
       {isNotesModalOpen && (
         <NotesModal
           title={currentNotesTitle}
